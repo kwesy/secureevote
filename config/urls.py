@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include('core.urls', namespace='core')),
     path('api/v1/payments/', include('payments.urls', namespace='payments')),
+    path('api/v1/', include('tally.urls', namespace='tally')),
 ]

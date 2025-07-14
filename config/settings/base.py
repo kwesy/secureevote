@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     # 'payments',
     'core.apps.CoreConfig',
     'payments.apps.PaymentsConfig',
+    'tally.apps.TallyConfig',
 ]
 
 MIDDLEWARE = [
