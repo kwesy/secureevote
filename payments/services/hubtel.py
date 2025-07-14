@@ -13,7 +13,7 @@ def initiate_payment(reference, amount, description, customer_number):
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Basic {config('HUBTEL_AUTH_BASE64')}",
+        "Authorization": f"Basic {config('HUBTEL_AUTH_BASE64', default='your_base64_encoded_credentials')}",
     }
 
     payload = {
@@ -27,5 +27,6 @@ def initiate_payment(reference, amount, description, customer_number):
         "clientReference": reference
     }
 
-    response = requests.post(url, json=payload, headers=headers)
-    return response.json()
+    # response = requests.post(url, json=payload, headers=headers)
+    # return response.json()
+    return payload # For testing purposes, we return the payload directly

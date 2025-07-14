@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from django.core.exceptions import PermissionDenied
 from .models.user import User
 from .serializers import UserSerializer
 
@@ -171,18 +172,18 @@ class CandidateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Only return candidates for an event owned by the user
-        event_id = self.request.query_params.get('event_id')
+        # event_id = self.request.query_params.get('event_id')
 
-        if not event_id:
-            # If no event_id is provided, return an empty queryset
-            return Candidate.objects.none()
+        # if not event_id:
+        #     # If no event_id is provided, return an empty queryset
+        #     return Candidate.objects.none()
         
-        return Candidate.objects.filter( event=event_id, event__user=self.request.user)
-    
-    # def perform_create(self, serializer):
-    #     event = Event.objects.filter(id=event_id, user=self.request.user).first()
-    #     if not event:
-    #         raise ValueError("You do not have permission to add candidates to this event.")
+        return Candidate.objects.filter( event__user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Ensure the event belongs to the authenticated user
+        event = serializer.validated_data.get('event')
+        if event.user != self.request.user:
+            raise PermissionDenied("You do not have permission to add candidates to this event.")
         
-    #     serializer.save(event=event)
-        
+        serializer.save()
