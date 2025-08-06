@@ -110,7 +110,8 @@ class ConfirmPasswordReset(APIView):
 # This section contains views that are accessible without authentication, allowing users to view events and candidates.
 from .models.event import Event
 from .models.candidate import Candidate
-from .serializers import EventSerializer, CandidateSerializer
+from .models.category import Category
+from .serializers import EventSerializer, CandidateSerializer, CategorySerializer
 from rest_framework import generics
 
 class PublicEventListView(generics.ListAPIView):
@@ -118,13 +119,32 @@ class PublicEventListView(generics.ListAPIView):
     serializer_class = EventSerializer
     permission_classes = []
 
-class PublicCandidateListView(generics.ListAPIView):
-    serializer_class = CandidateSerializer
+class PublicCategoryListView(generics.ListAPIView):
+    serializer_class = CategorySerializer
     permission_classes = []
 
     def get_queryset(self):
         return Candidate.objects.filter(
             event__shortcode=self.kwargs['shortcode'],
+            is_blocked=False,
+            event__is_active=True
+        )
+
+class PublicCandidateListView(generics.ListAPIView):
+    serializer_class = CandidateSerializer
+    permission_classes = []
+
+    def get_queryset(self):
+
+        shortcode = self.request.query_params.get("eventcode")
+        category = self.request.query_params.get("category")
+
+        if not shortcode or not category:
+            return Candidate.objects.none()
+
+        return Candidate.objects.filter(
+            event__shortcode=shortcode,
+            category=category,
             is_blocked=False,
             event__is_active=True
         )
@@ -166,24 +186,61 @@ class EventViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-class CandidateViewSet(viewsets.ModelViewSet):
-    serializer_class = CandidateSerializer
+class CategoryViewSet(viewsets.ModelViewSet):
+    serializer_class = CategorySerializer
     permission_classes = [IsOrganizer]
 
     def get_queryset(self):
-        # Only return candidates for an event owned by the user
-        # event_id = self.request.query_params.get('event_id')
+        # Only return category owned by the user
+        # event_id = self.request.query_params.get('event')
 
         # if not event_id:
         #     # If no event_id is provided, return an empty queryset
-        #     return Candidate.objects.none()
+        #     return Category.objects.none()
         
-        return Candidate.objects.filter( event__user=self.request.user)
+        return Category.objects.filter( event__user=self.request.user)
 
     def perform_create(self, serializer):
         # Ensure the event belongs to the authenticated user
         event = serializer.validated_data.get('event')
         if event.user != self.request.user:
+            raise PermissionDenied("You do not have permission to add category to this event.")
+        
+        serializer.save()
+
+class CandidateViewSet(viewsets.ModelViewSet):
+    serializer_class = CandidateSerializer
+    permission_classes = [IsOrganizer]
+
+    def get_queryset(self):
+        # Only return candidates owned by the user
+        
+        return Candidate.objects.filter( event__user=self.request.user)
+
+    def perform_create(self, serializer):
+        print(serializer.validated_data)
+        # Ensure the event belongs to the authenticated user
+        event = serializer.validated_data.get('event')
+        category = serializer.validated_data.get('category')
+        if event.user != self.request.user:
             raise PermissionDenied("You do not have permission to add candidates to this event.")
         
+        if category.event.user != self.request.user:
+            raise PermissionDenied("You do not have permission to add candidates to this category.")
+        
+        # Save the candidate with the authenticated user as the organizer
+        serializer.save()
+
+    def perform_update(self, serializer):
+        # Ensure the event and category belong to the authenticated user
+        event = serializer.validated_data.get('event')
+        category = serializer.validated_data.get('category')
+        
+        if event.user != self.request.user:
+            raise PermissionDenied("You do not have permission to update candidates for this event.")
+        
+        if category.event.user != self.request.user:
+            raise PermissionDenied("You do not have permission to update candidates for this category.")
+        
+        # Save the updated candidate
         serializer.save()
