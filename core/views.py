@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
-from .serializers import UserSerializer
+from .serializers import PublicEventSerializer, UserSerializer
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -116,7 +116,7 @@ from rest_framework import generics
 
 class PublicEventListView(generics.ListAPIView):
     queryset = Event.objects.filter(is_active=True, is_blocked=False)
-    serializer_class = EventSerializer
+    serializer_class = PublicEventSerializer
     permission_classes = []
 
 class PublicCategoryListView(generics.ListAPIView):
@@ -192,14 +192,22 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Only return category owned by the user
-        # event_id = self.request.query_params.get('event')
-
-        # if not event_id:
-        #     # If no event_id is provided, return an empty queryset
-        #     return Category.objects.none()
-        
         return Category.objects.filter( event__user=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        # Override list to return categories for a specific event
+        event_id = self.request.query_params.get('event')
 
+        if not event_id:
+            # If no event_id is provided, return an empty queryset
+            queryset = Category.objects.none()
+        else:
+            # Filter categories by the provided event_id
+            queryset = self.get_queryset().filter(event_id=event_id)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
     def perform_create(self, serializer):
         # Ensure the event belongs to the authenticated user
         event = serializer.validated_data.get('event')
@@ -214,8 +222,7 @@ class CandidateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Only return candidates owned by the user
-        
-        return Candidate.objects.filter( event__user=self.request.user)
+        return Candidate.objects.filter( category__event__user=self.request.user)
 
     def perform_create(self, serializer):
         print(serializer.validated_data)
@@ -231,6 +238,21 @@ class CandidateViewSet(viewsets.ModelViewSet):
         # Save the candidate with the authenticated user as the organizer
         serializer.save()
 
+    def list(self, request, *args, **kwargs):
+        # Override list to return candidates for a specific event or category
+        category_id = self.request.query_params.get('category')
+
+        if not category_id:
+            # If no filters are provided, return an empty queryset
+            queryset = Candidate.objects.none()
+        else:
+            # Filter candidates by the provided event_id and/or category_id
+            queryset = self.get_queryset()
+            queryset = queryset.filter(category_id=category_id)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def perform_update(self, serializer):
         # Ensure the event and category belong to the authenticated user
         event = serializer.validated_data.get('event')
@@ -244,3 +266,4 @@ class CandidateViewSet(viewsets.ModelViewSet):
         
         # Save the updated candidate
         serializer.save()
+        
