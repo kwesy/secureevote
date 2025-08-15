@@ -97,7 +97,7 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'name', 'description', 'shortcode',
-            'amount_per_vote', 'start_time', 'end_time', 'host', 'location'
+            'amount_per_vote', 'start_time', 'end_time', 'host', 'location',
             'is_active', 'is_blocked', 'total_candidates', 'total_votes', 'revenue',
         ]
 
