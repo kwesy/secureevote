@@ -9,3 +9,6 @@ psycopg2-binary
 djangorestframework-simplejwt
 shortuuid
 requests
+coverage
+pytest
+pytest-django

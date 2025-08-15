@@ -14,6 +14,7 @@ class Event(TimeStampedModel):
     amount_per_vote = models.DecimalField(max_digits=10, decimal_places=2)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
+    location = models.CharField(max_length=255, blank=True)
     is_active = models.BooleanField(default=True)
     is_blocked = models.BooleanField(default=False)
 
