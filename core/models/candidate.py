@@ -12,6 +12,8 @@ class Candidate(TimeStampedModel):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     photo = models.ImageField(upload_to='candidates/photos/', blank=True, null=True)
     description = models.TextField(blank=True)
+    extra_info = models.TextField(blank=True)
+    achivements = models.JSONField(blank=True, default=list)
     vote_count = models.PositiveIntegerField(default=0)
     is_blocked = models.BooleanField(default=False)
 

@@ -19,8 +19,15 @@ class CandidateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Candidate
-        fields = ['id', 'name', 'gender', 'photo', 'description', 'vote_count', 'is_blocked', 'event', 'category', 'revenue' ]
+        fields = ['id', 'name', 'gender', 'photo', 'description', 'vote_count', 'is_blocked', 'event', 'category', 'revenue', 'achivements', 'extra_info' ]
         read_only_fields = ['vote_count']
+
+class PublicCandidateSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Candidate
+        fields = ['id', 'name', 'gender', 'photo', 'description', 'vote_count', 'event', 'category', 'achivements', 'extra_info' ]
+        read_only_fields = fields
 
 # Category Serializer
 
