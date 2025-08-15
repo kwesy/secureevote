@@ -46,12 +46,25 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ["id", "event", "name", "description", "is_active", 'total_candidates', 'total_votes']
 
 class PublicCategorySerializer(serializers.ModelSerializer):
-    candidates = CandidateSerializer(many=True, read_only=True)
+    total_votes = serializers.SerializerMethodField()
+    total_candidates = serializers.SerializerMethodField()
+    
+    def get_total_votes(self, obj):
+        """
+        Returns the total number of votes for all candidates in the category.
+        """
+        return sum(candidate.vote_count for candidate in obj.candidates.all())
+
+    def get_total_candidates(self, obj):
+        """
+        Returns the total number of candidates in the category.
+        """
+        return obj.candidates.count()
 
     class Meta:
         model = Category
-        fields = ["id", "event", "name", "description"]
-        read_only_fields = '__all__'
+        fields = ["id", "event", "name", "description", 'total_candidates', 'total_votes']
+        read_only_fields = ["id", "event", "name", "description", 'total_candidates', 'total_votes']
 
 #Event Serializer
 

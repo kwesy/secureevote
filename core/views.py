@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
-from .serializers import PublicEventSerializer, UserSerializer
+from .serializers import PublicCategorySerializer, PublicEventSerializer, UserSerializer
 
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -120,14 +120,14 @@ class PublicEventListView(generics.ListAPIView):
     permission_classes = []
 
 class PublicCategoryListView(generics.ListAPIView):
-    serializer_class = CategorySerializer
-    permission_classes = []
+    serializer_class = PublicCategorySerializer
+    permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        return Candidate.objects.filter(
+        return Category.objects.filter(
             event__shortcode=self.kwargs['shortcode'],
-            is_blocked=False,
-            event__is_active=True
+            event__is_active=True,
+            is_active=True
         )
 
 class PublicCandidateListView(generics.ListAPIView):

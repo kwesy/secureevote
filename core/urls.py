@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CategoryViewSet, RegisterView, LoginView, MeView, RequestPasswordReset, ConfirmPasswordReset, UpdateUserView
+from .views import CategoryViewSet, PublicCategoryListView, RegisterView, LoginView, MeView, RequestPasswordReset, ConfirmPasswordReset, UpdateUserView
 from .views import (
     PublicEventListView,
     PublicCandidateListView,
@@ -27,7 +27,7 @@ urlpatterns = [
 
 urlpatterns += [
     path('public/events/', PublicEventListView.as_view(), name='public-events'),
-    path('public/events/<str:shortcode>/categories/', PublicCandidateListView.as_view(), name='public-candidates'),
+    path('public/events/<str:shortcode>/categories/', PublicCategoryListView.as_view(), name='public-categories'),
     path('public/events/candidates/', PublicCandidateListView.as_view(), name='public-candidates'),
     path('public/events/<str:shortcode>/results/', EventResultsView.as_view(), name='public-results'),
 ]
