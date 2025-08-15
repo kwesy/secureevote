@@ -77,22 +77,22 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = [
             'id', 'name', 'description', 'shortcode',
-            'amount_per_vote', 'start_time', 'end_time',
+            'amount_per_vote', 'start_time', 'end_time', 'host', 'location'
             'is_active', 'is_blocked', 'total_candidates', 'total_votes', 'revenue',
         ]
 
 class PublicEventSerializer(serializers.ModelSerializer):
     number_of_category = serializers.SerializerMethodField()
 
-    def get_number_of_category(self):
+    def get_number_of_category(self, obj):
         """
         Returns the number of categories associated with the event.
         """
-        return self.categories.count()
+        return obj.categories.count()
 
     class Meta:
         model = Event
         fields = [
             'id', 'name', 'description', 'shortcode', 'start_time',
-            'end_time', 'number_of_category'
+            'end_time', 'number_of_category', 'host', 'location'
         ]
