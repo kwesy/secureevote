@@ -9,6 +9,7 @@ def generate_shortcode():
 class Event(TimeStampedModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='events')
     name = models.CharField(max_length=255)
+    host = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     shortcode = models.CharField(max_length=10, unique=True, default=generate_shortcode)
     amount_per_vote = models.DecimalField(max_digits=10, decimal_places=2)
