@@ -153,6 +153,7 @@ REST_FRAMEWORK = {
         'anon': '10/minute',     # anonymous users
         'user': '100/minute',    # logged-in users (organizers)
     },
+    'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
 }
 
 CORS_ALLOW_ALL_ORIGINS = True  # Lock down in production

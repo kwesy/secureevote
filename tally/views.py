@@ -9,8 +9,9 @@ from core.models import Candidate
 from core.models import Event
 from tally.serializers import PublicCandidateResultSerializer
 from django.shortcuts import get_object_or_404
+from core.mixins.response import StandardResponseView
 
-class PublicEventResultsView(APIView):
+class PublicEventResultsView(StandardResponseView):
     permission_classes = [AllowAny]
 
     def get(self, request, shortcode):

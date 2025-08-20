@@ -6,9 +6,12 @@ from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
 from .serializers import PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, UserSerializer
+from .mixins.response import StandardResponseView
 
-class RegisterView(APIView):
+
+class RegisterView(StandardResponseView):
     permission_classes = [permissions.AllowAny]
+    success_message = "User registered successfully"
 
     def post(self, request):
         data = request.data
@@ -28,8 +31,9 @@ class RegisterView(APIView):
         )
         return Response(UserSerializer(user).data, status=201)
 
-class LoginView(APIView):
+class LoginView( StandardResponseView):
     permission_classes = [permissions.AllowAny]
+    success_message = "User logged in successfully"
 
     def post(self, request):
         email = request.data.get('email')
@@ -45,8 +49,9 @@ class LoginView(APIView):
             'refresh': str(refresh),
         })
     
-class UpdateUserView(APIView):
+class UpdateUserView(StandardResponseView):
     permission_classes = [permissions.IsAuthenticated]
+    success_message = {"PATCH":"User updated successfully"}
 
     def patch(self, request):
         user = request.user
@@ -58,8 +63,9 @@ class UpdateUserView(APIView):
         user.save()
         return Response(UserSerializer(user).data)
 
-class MeView(APIView):
+class MeView(StandardResponseView):
     permission_classes = [permissions.IsAuthenticated]
+    success_message = {"GET": "User details fetched successfully"}
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
@@ -72,8 +78,9 @@ class MeView(APIView):
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth import get_user_model
 
-class RequestPasswordReset(APIView):
+class RequestPasswordReset(StandardResponseView):
     permission_classes = [permissions.AllowAny]
+    success_message = {"POST": "Password reset token generated successfully"}
 
     def post(self, request):
         email = request.data.get('email')
@@ -86,8 +93,9 @@ class RequestPasswordReset(APIView):
             })
         return Response({'detail': 'User not found'}, status=404)
 
-class ConfirmPasswordReset(APIView):
+class ConfirmPasswordReset(StandardResponseView):
     permission_classes = [permissions.AllowAny]
+    # success_message = "Password reset successful"
 
     def post(self, request):
         uid = request.data.get('uid')
@@ -114,14 +122,16 @@ from .models.category import Category
 from .serializers import EventSerializer, CandidateSerializer, CategorySerializer
 from rest_framework import generics
 
-class PublicEventListView(generics.ListAPIView):
+class PublicEventListView(StandardResponseView, generics.ListAPIView):
     queryset = Event.objects.filter(is_active=True, is_blocked=False)
     serializer_class = PublicEventSerializer
     permission_classes = []
+    success_message = "Events fetched successfully"
 
-class PublicCategoryListView(generics.ListAPIView):
+class PublicCategoryListView(StandardResponseView, generics.ListAPIView):
     serializer_class = PublicCategorySerializer
     permission_classes = [permissions.AllowAny]
+    success_message = "Categories fetched successfully"
 
     def get_queryset(self):
         return Category.objects.filter(
@@ -130,9 +140,10 @@ class PublicCategoryListView(generics.ListAPIView):
             is_active=True
         )
 
-class PublicCandidateListView(generics.ListAPIView):
+class PublicCandidateListView(StandardResponseView, generics.ListAPIView):
     serializer_class = PublicCandidateSerializer
     permission_classes = []
+    success_message = "Candidates fetched successfully"
 
     def get_queryset(self):
 
@@ -149,8 +160,9 @@ class PublicCandidateListView(generics.ListAPIView):
             event__is_active=True
         )
 
-class EventResultsView(APIView):
+class EventResultsView(StandardResponseView):
     permission_classes = []
+    success_message = "Event results fetched successfully"
 
     def get(self, request, shortcode):
         event = Event.objects.filter(shortcode=shortcode, is_active=True).first()
@@ -176,7 +188,7 @@ class EventResultsView(APIView):
 from rest_framework import viewsets
 from .permissions import IsOrganizer
 
-class EventViewSet(viewsets.ModelViewSet):
+class EventViewSet(StandardResponseView, viewsets.ModelViewSet):
     serializer_class = EventSerializer
     permission_classes = [IsOrganizer]
 
@@ -186,7 +198,7 @@ class EventViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(StandardResponseView, viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [IsOrganizer]
 
@@ -216,7 +228,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         
         serializer.save()
 
-class CandidateViewSet(viewsets.ModelViewSet):
+class CandidateViewSet(StandardResponseView, viewsets.ModelViewSet):
     serializer_class = CandidateSerializer
     permission_classes = [IsOrganizer]
 
