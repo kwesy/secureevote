@@ -257,6 +257,8 @@ class CandidateViewSet(viewsets.ModelViewSet):
         # Ensure the event and category belong to the authenticated user
         event = serializer.validated_data.get('event')
         category = serializer.validated_data.get('category')
+        if not event or not category:
+            raise PermissionDenied("Event and category must be specified for updating candidates.")
         
         if event.user != self.request.user:
             raise PermissionDenied("You do not have permission to update candidates for this event.")

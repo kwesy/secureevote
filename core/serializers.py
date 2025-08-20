@@ -52,6 +52,16 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ["id", "event", "name", "description", "is_active", 'total_candidates', 'total_votes']
 
+    def update(self, instance, validated_data):
+        """
+        Update the category instance with the provided data.
+        """
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.description)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.save()
+        return instance
+
 class PublicCategorySerializer(serializers.ModelSerializer):
     total_votes = serializers.SerializerMethodField()
     total_candidates = serializers.SerializerMethodField()
