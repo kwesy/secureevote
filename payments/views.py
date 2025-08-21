@@ -10,37 +10,42 @@ from .services.hubtel import initiate_payment
 
 class InitiateVoteView(APIView):
     permission_classes = []
+    serializer_class = VoteTransactionSerializer
 
     def post(self, request):
-        candidate_id = request.data.get('candidate_id')
-        vote_count = int(request.data.get('vote_count', 0))
-        customer_number = request.data.get('phone')
+        serializer = self.serializer_class(data=request.data)
 
-        if vote_count <= 0 or not customer_number:
+        if not serializer.is_valid():
+            return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        phone_number = serializer.validated_data.get('phone_number')
+        vote_count = serializer.validated_data.get('vote_count')
+        candidate = serializer.validated_data.get('candidate')
+
+        print(f"Received vote request: candidate_id={candidate}, vote_count={vote_count}, phone_number={phone_number}")
+
+        if vote_count <= 0 or not phone_number:
             return Response({'detail': 'Invalid input'}, status=400)
 
-        candidate = Candidate.objects.select_related('event').filter(id=candidate_id, is_blocked=False).first()
         if not candidate:
             return Response({'detail': 'Candidate not found'}, status=404)
+        
+        try:
+            amount = candidate.event.amount_per_vote * Decimal(vote_count)
 
-        amount = candidate.event.amount_per_vote * Decimal(vote_count)
-        reference = str(uuid.uuid4())
+            instance = serializer.save(amount=amount)
 
-        tx = VoteTransaction.objects.create(
-            event=candidate.event,
-            candidate=candidate,
-            vote_count=vote_count,
-            amount_paid=amount,
-            payment_reference=reference,
-        )
+            description = f"{vote_count} votes for {candidate.name} ({candidate.event.name})"
+            payment_response = initiate_payment(id, amount, description, phone_number)
 
-        description = f"{vote_count} votes for {candidate.name} ({candidate.event.name})"
-        payment_response = initiate_payment(reference, amount, description, customer_number)
+        except Exception as e:
+            print(f"Error creating transaction: {e}")
+            return Response({'detail': 'Failed to create transaction'}, status=500)
 
         return Response({
             "payment_url": payment_response.get("checkoutUrl"),
-            "reference": reference,
-            "amount": str(amount),
+            "reference": instance.id,
+            "amount": instance.amount,
         })
     
 # Hubtel Webhook View

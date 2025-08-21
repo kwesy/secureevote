@@ -4,10 +4,10 @@ from .models.webhook_log import WebhookLog
 
 @admin.register(VoteTransaction)
 class VoteTransactionAdmin(admin.ModelAdmin):
-    list_display = ('payment_reference', 'vote_count', 'amount', 'phone_number', 'payment_method', 'provider', 'candidate', 'category', 'event', 'status', 'is_verified')
+    list_display = ('payment_reference', 'vote_count', 'amount', 'phone_number', 'payment_method', 'provider', 'candidate', 'status', 'is_verified')
     list_filter = ('is_verified',)
     search_fields = ('payment_reference',)
-    raw_id_fields = ('event', 'candidate')
+    raw_id_fields = ('candidate',)
 
 @admin.register(WebhookLog)
 class WebhookLogAdmin(admin.ModelAdmin):
