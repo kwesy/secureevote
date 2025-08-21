@@ -7,7 +7,7 @@ from .models.category import Category
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'organization_name']
+        fields = ['id', 'email', 'organization_name', 'is_verified', 'is_active', 'balance']
 
 class CandidateSerializer(serializers.ModelSerializer):
     revenue = serializers.SerializerMethodField()

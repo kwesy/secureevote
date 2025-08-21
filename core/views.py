@@ -281,3 +281,18 @@ class CandidateViewSet(StandardResponseView, viewsets.ModelViewSet):
         # Save the updated candidate
         serializer.save()
         
+class DashboardView(StandardResponseView):
+    permission_classes = [IsOrganizer]
+    success_message = "Dashboard data fetched successfully"
+
+    def get(self, request):
+        user = request.user
+        events = Event.objects.filter(user=user, is_active=True, is_blocked=False)
+
+        data = {
+            "total_active_events": events.count(),
+            "active_events": EventSerializer(events, many=True).data,
+            "available_balance": user.balance,
+        }
+
+        return Response(data)

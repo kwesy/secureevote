@@ -6,8 +6,8 @@ class VoteTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = VoteTransaction
         fields = [
-            'id', 'event', 'candidate', 'vote_count',
-            'amount_paid', 'payment_reference', 'is_verified', 'created_at'
+            'id', 'event', 'category', 'candidate', 'vote_count',
+            'amount', 'status', 'payment_method', 'provider', 'payment_reference', 'is_verified', 'created_at'
         ]
         read_only_fields = ['is_verified', 'created_at']
 
