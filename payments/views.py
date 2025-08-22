@@ -2,15 +2,18 @@ import uuid
 from decimal import Decimal
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from core.models.candidate import Candidate
 from .models.vote_transaction import VoteTransaction
 from .serializers import VoteTransactionSerializer
 from .services.hubtel import initiate_payment
+from core.mixins.response import StandardResponseView
+from core.permissions import IsOrganizer
 
-class InitiateVoteView(APIView):
+class InitiateVoteView(StandardResponseView):
     permission_classes = []
     serializer_class = VoteTransactionSerializer
+    success_message = "transaction initiated successfully"
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -86,3 +89,16 @@ class HubtelWebhookView(APIView):
             return Response({"detail": "Transaction not found or already verified"}, status=400)
 
         return Response({"detail": "Payment confirmed"}, status=200)
+
+
+# Vote Transactions History View 
+class VoteTransactionHistoryView(StandardResponseView, generics.ListAPIView):
+    permission_classes = [IsOrganizer]
+
+    def get(self, request):
+        user = request.user
+
+        transactions = VoteTransaction.objects.filter(candidate__event__user=user).order_by('-created_at')
+        serializer = VoteTransactionSerializer(transactions, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
