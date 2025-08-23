@@ -157,8 +157,9 @@ class WithdrawalOTPConfirmationView(StandardResponseView, generics.CreateAPIView
             # Verify the OTP code
             if withdrawal and not withdrawal.is_verified and withdrawal.otp.verify(code):
                 request.user.balance -= withdrawal.amount
-                request.user.is_verified = True
+                withdrawal.is_verified = True
                 request.user.save()
+                withdrawal.save()
                 #TODO: send money to user
                 return Response({"detail": "OTP confirmed successfully"}, status=status.HTTP_200_OK)
             else:
