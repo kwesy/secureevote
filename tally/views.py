@@ -1,26 +1,25 @@
 from django.shortcuts import render
 
 # Create your views here.
+from core.models.category import Category
+from core.permissions import IsOrganizer
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from core.models import Candidate
-from core.models import Event
-from tally.serializers import PublicCandidateResultSerializer
+from tally.serializers import CategoryResultSerializer
 from django.shortcuts import get_object_or_404
 from core.mixins.response import StandardResponseView
+from rest_framework import status
 
-class PublicEventResultsView(StandardResponseView):
-    permission_classes = [AllowAny]
+class EventResultsView(StandardResponseView):
+    permission_classes = [IsOrganizer]
 
-    def get(self, request, shortcode):
-        event = get_object_or_404(Event, shortcode=shortcode, is_active=True, is_blocked=False)
-        candidates = Candidate.objects.filter(event=event, is_blocked=False)
+    def get(self, request):
+        event_id = request.query_params.get('event')
+        category_id = request.query_params.get('category')
 
-        serializer = PublicCandidateResultSerializer(candidates, many=True)
-        return Response({
-            "event": event.name,
-            "shortcode": event.shortcode,
-            "results": serializer.data
-        })
+        category = get_object_or_404(Category, id=category_id, event_id=event_id, event__user=request.user)
+        serializer = CategoryResultSerializer(instance=category)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

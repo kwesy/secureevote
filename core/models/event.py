@@ -16,8 +16,8 @@ class Event(TimeStampedModel):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     location = models.CharField(max_length=255, blank=True)
-    is_active = models.BooleanField(default=True)
-    is_blocked = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True) # Indicates if the event is currently active
+    is_blocked = models.BooleanField(default=False) # Indicates if the event is blocked or not by developer
 
     def __str__(self):
         return f"{self.name} ({self.shortcode})"
