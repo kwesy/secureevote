@@ -14,6 +14,7 @@ def custom_exception_handler(exc, context):
         )
 
     # Handle non-DRF exceptions
+    print(f"Unhandled exception: {exc}")
     return standard_response(
         data=None,
         message="Internal server error",

@@ -1,3 +1,4 @@
+from payments.models.withdrawal_transaction import WithdrawalTransaction
 from rest_framework import serializers
 from .models.vote_transaction import VoteTransaction
 from .models.webhook_log import WebhookLog
@@ -10,6 +11,14 @@ class VoteTransactionSerializer(serializers.ModelSerializer):
             'amount', 'status', 'payment_method', 'provider', 'phone_number', 'payment_reference', 'is_verified', 'created_at'
         ]
         read_only_fields = ['payment_reference', 'event', 'category', 'is_verified', 'created_at']
+
+class WithdrawalTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WithdrawalTransaction
+        fields = [
+            'id', 'amount', 'status', 'withdraw_method', 'provider', 'phone_number', 'payment_reference', 'created_at',
+        ]
+        read_only_fields = ['payment_reference', 'status', 'created_at']
 
 class WebhookLogSerializer(serializers.ModelSerializer):
     class Meta:
