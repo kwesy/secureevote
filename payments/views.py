@@ -113,7 +113,7 @@ class WithdrawalTransactionView(StandardResponseView, generics.ListAPIView, gene
     def get(self, request):
         user = request.user
 
-        transactions = WithdrawalTransaction.objects.filter(user=user).order_by('-created_at')
+        transactions = WithdrawalTransaction.objects.filter(user=user, is_verified=True).order_by('-created_at')
         serializer = WithdrawalTransactionSerializer(transactions, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
