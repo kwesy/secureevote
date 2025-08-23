@@ -20,6 +20,15 @@ class WithdrawalTransactionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['payment_reference', 'status', 'created_at']
 
+class WithdrawalTransactionOTPSerializer(serializers.Serializer):
+    id = serializers.CharField(max_length=40)
+    code = serializers.CharField(min_length=6 , max_length=6)
+    class Meta:
+        model = None
+        fields = [
+            'id', 'code'    # transaction ID and OTP code for verification
+        ]
+
 class WebhookLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebhookLog

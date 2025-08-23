@@ -18,5 +18,5 @@ class WithdrawalTransaction(TimeStampedModel):
     phone_number = models.CharField(max_length=15)
     payment_reference = models.CharField(max_length=100, unique=True, null=True)
     status = models.CharField(max_length=20, default='pending', choices=PAYMENT_STATUS_CHOICES)
-    # otp = models.CharField(max_length=6)
-    # is_verified = models.BooleanField(default=False)
+    otp = models.ForeignKey('core.OTP', on_delete=models.CASCADE, related_name='withdrawals')
+    is_verified = models.BooleanField(default=False)

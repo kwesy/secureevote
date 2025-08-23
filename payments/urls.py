@@ -1,12 +1,15 @@
 from django.urls import path
-from .views import InitiateVoteView, HubtelWebhookView, VoteTransactionHistoryView, WithdrawalTransactionHistoryView
+
+from payments.serializers import WithdrawalTransactionOTPSerializer
+from .views import InitiateVoteView, HubtelWebhookView, VoteTransactionHistoryView, WithdrawalOTPConfirmationView, WithdrawalTransactionView
 
 app_name = "payments"
 
 urlpatterns = [
     path('vote', InitiateVoteView.as_view(), name='initiate-vote'),
     path('vote/transactions', VoteTransactionHistoryView.as_view(), name='vote-transactions'),
-    path('withdrawals', WithdrawalTransactionHistoryView.as_view(), name='withdrawals'),
+    path('withdrawals', WithdrawalTransactionView.as_view(), name='withdrawals'),
+    path('withdrawals/verify-otp', WithdrawalOTPConfirmationView.as_view(), name='withdrawal-otp'),
 ]
 
 # Hubtel Webhook URL

@@ -1,12 +1,13 @@
 import uuid
 from decimal import Decimal
+from core.models.otp import OTP
 from payments.models.withdrawal_transaction import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from core.models.candidate import Candidate
 from .models.vote_transaction import VoteTransaction
-from .serializers import VoteTransactionSerializer, WithdrawalTransactionSerializer
+from .serializers import VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
@@ -105,7 +106,7 @@ class VoteTransactionHistoryView(StandardResponseView, generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 # Withdrawal Transactions History View
-class WithdrawalTransactionHistoryView(StandardResponseView, generics.ListAPIView, generics.CreateAPIView):
+class WithdrawalTransactionView(StandardResponseView, generics.ListAPIView, generics.CreateAPIView):
     serializer_class = WithdrawalTransactionSerializer
     permission_classes = [IsOrganizer]
 
@@ -125,11 +126,43 @@ class WithdrawalTransactionHistoryView(StandardResponseView, generics.ListAPIVie
         
         # Ensure the user has a valid wallet balance
         if request.user.balance >= serializer.validated_data['amount']:
-            request.user.balance -= serializer.validated_data['amount']
-            request.user.save()
+            # Create the withdrawal transaction and otp
+            otp = OTP.objects.create(is_verified=False)
+            serializer.save(otp=otp, user=request.user)
         else:
             return Response({'detail': 'Insufficient balance for withdrawal'}, status=status.HTTP_400_BAD_REQUEST)
         
 
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+# Withdrawal OTP confirmation view
+class WithdrawalOTPConfirmationView(StandardResponseView, generics.CreateAPIView):
+    serializer_class = WithdrawalTransactionOTPSerializer
+    permission_classes = [IsOrganizer]
+
+    def post(self, request):
+        self.success_message = "OTP confirmed successfully"
+        serializer = self.serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        withdrawal_id = serializer.validated_data.get('id')
+        code = serializer.validated_data.get('code')
+
+        try:
+            withdrawal = WithdrawalTransaction.objects.get(id=withdrawal_id, user=request.user)
+
+            # Verify the OTP code
+            if withdrawal and not withdrawal.is_verified and withdrawal.otp.verify(code):
+                request.user.balance -= withdrawal.amount
+                request.user.is_verified = True
+                request.user.save()
+                #TODO: send money to user
+                return Response({"detail": "OTP confirmed successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"detail": "Invalid OTP code"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        except WithdrawalTransaction.DoesNotExist:
+            return Response({"detail": "Withdrawal transaction not found"}, status=status.HTTP_404_NOT_FOUND)
