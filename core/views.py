@@ -1,3 +1,4 @@
+from core.models.ticket import Ticket
 from rest_framework import status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -5,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
-from .serializers import PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, UserSerializer
+from .serializers import PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, TicketSerializer, UserSerializer
 from .mixins.response import StandardResponseView
 
 
@@ -279,6 +280,21 @@ class CandidateViewSet(StandardResponseView, viewsets.ModelViewSet):
             raise PermissionDenied("You do not have permission to update candidates for this category.")
         
         # Save the updated candidate
+        serializer.save()
+
+class TicketViewSet(StandardResponseView, viewsets.ModelViewSet):
+    serializer_class = TicketSerializer
+    permission_classes = [IsOrganizer]
+    
+    def get_queryset(self):
+        return Ticket.objects.filter(event__user=self.request.user)
+    
+    def perform_create(self, serializer):
+        # and Event has a user field that points to the organizer (self.request.user).
+        event = serializer.validated_data.get('event')
+        if event.user != self.request.user:
+            raise PermissionDenied("You are not allowed create tickets this event.")
+        
         serializer.save()
         
 class DashboardView(StandardResponseView):
