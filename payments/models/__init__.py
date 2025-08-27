@@ -1,3 +1,3 @@
 # Create your models here.
-from .vote_transaction import VoteTransaction
+from core.models.vote import VoteTransaction
 from .webhook_log import WebhookLog

@@ -6,13 +6,52 @@ from payments.models.withdrawal_transaction import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
-from core.models.candidate import Candidate
-from .models.vote_transaction import VoteTransaction
+from core.models.vote import VoteTransaction
 from .serializers import TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
 
+# class InitiateVoteView(StandardResponseView):
+#     permission_classes = []
+#     serializer_class = VoteTransactionSerializer
+#     success_message = "transaction initiated successfully"
+
+#     def post(self, request):
+#         serializer = self.serializer_class(data=request.data)
+
+#         if not serializer.is_valid():
+#             return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+#         phone_number = serializer.validated_data.get('phone_number')
+#         vote_count = serializer.validated_data.get('vote_count')
+#         candidate = serializer.validated_data.get('candidate')
+
+#         print(f"Received vote request: candidate_id={candidate}, vote_count={vote_count}, phone_number={phone_number}")
+
+#         if vote_count <= 0 or not phone_number:
+#             return Response({'detail': 'Invalid input'}, status=400)
+
+#         if not candidate:
+#             return Response({'detail': 'Candidate not found'}, status=404)
+        
+#         try:
+#             amount = candidate.event.amount_per_vote * Decimal(vote_count)
+
+#             instance = serializer.save(amount=amount)
+
+#             description = f"{vote_count} votes for {candidate.name} ({candidate.event.name})"
+#             payment_response = initiate_payment(id, amount, description, phone_number)
+
+#         except Exception as e:
+#             print(f"Error creating transaction: {e}")
+#             return Response({'detail': 'Failed to create transaction'}, status=500)
+
+#         return Response({
+#             "payment_url": payment_response.get("checkoutUrl"),
+#             "reference": instance.id,
+#             "amount": instance.amount,
+#         })
 class InitiateVoteView(StandardResponseView):
     permission_classes = []
     serializer_class = VoteTransactionSerializer
@@ -24,7 +63,10 @@ class InitiateVoteView(StandardResponseView):
         if not serializer.is_valid():
             return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
-        phone_number = serializer.validated_data.get('phone_number')
+        phone_number = serializer.validated_data.pop('phone_number')
+        channel = serializer.validated_data.pop('channel')
+        provider = serializer.validated_data.pop('provider')
+
         vote_count = serializer.validated_data.get('vote_count')
         candidate = serializer.validated_data.get('candidate')
 
@@ -35,14 +77,27 @@ class InitiateVoteView(StandardResponseView):
 
         if not candidate:
             return Response({'detail': 'Candidate not found'}, status=404)
-        
+
         try:
-            amount = candidate.event.amount_per_vote * Decimal(vote_count)
+            amount = abs(candidate.event.amount_per_vote * Decimal(vote_count))
 
-            instance = serializer.save(amount=amount)
+            # Create transaction object
+            payment = Transaction.objects.create(
+                amount=amount,
+                channel=channel,
+                provider=provider,
+                phone_number=phone_number,
+                status='pending',
+                currency='GHS',
+                type='payment',
+                desc=f"{vote_count} votes for {candidate.name} ({candidate.event.name})",
+            )
 
-            description = f"{vote_count} votes for {candidate.name} ({candidate.event.name})"
-            payment_response = initiate_payment(id, amount, description, phone_number)
+            # Save vote record with payment linked
+            instance = serializer.save(payment=payment)
+
+            description = payment.desc
+            payment_response = initiate_payment(payment.id, amount, description, phone_number)
 
         except Exception as e:
             print(f"Error creating transaction: {e}")
@@ -51,9 +106,9 @@ class InitiateVoteView(StandardResponseView):
         return Response({
             "payment_url": payment_response.get("checkoutUrl"),
             "reference": instance.id,
-            "amount": instance.amount,
+            "amount": instance.payment.amount,
         })
-    
+
 # Hubtel Webhook View
 from .models.webhook_log import WebhookLog
 from django.db import transaction
