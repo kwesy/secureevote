@@ -1,13 +1,14 @@
 import uuid
 from decimal import Decimal
 from core.models.otp import OTP
+from payments.models.transaction import Transaction
 from payments.models.withdrawal_transaction import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from core.models.candidate import Candidate
 from .models.vote_transaction import VoteTransaction
-from .serializers import VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
+from .serializers import TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
@@ -167,3 +168,50 @@ class WithdrawalOTPConfirmationView(StandardResponseView, generics.CreateAPIView
             
         except WithdrawalTransaction.DoesNotExist:
             return Response({"detail": "Withdrawal transaction not found"}, status=status.HTTP_404_NOT_FOUND)
+
+# Ticket Payment View
+class TicketPaymentView(StandardResponseView):
+    permission_classes = []
+    serializer_class = TicketTransactionSerializer
+    success_message = "transaction initiated successfully"
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        phone_number = serializer.validated_data.pop('phone_number')
+        channel = serializer.validated_data.pop('channel')
+        provider = serializer.validated_data.pop('provider')
+
+        ticket = serializer.validated_data.get('ticket')
+
+        try:
+            amount = ticket.price
+            payment = Transaction.objects.create(
+                amount=amount,
+                channel=channel,
+                provider=provider,
+                phone_number=phone_number,
+                status='pending',
+                currency='GHS',
+                type='payment',
+                desc=f"Payment for ticket {ticket.type} ({ticket.event.name})",
+            )
+
+            instance = serializer.save(payment=payment)
+
+            description = f"Payment for ticket {ticket.type} ({ticket.event.name})"
+            payment_response = initiate_payment('refrence', amount, description, phone_number)
+
+        except Exception as e:
+            print(f"Error creating transaction: {e}")
+            return Response({'detail': 'Failed to create transaction'}, status=500)
+
+        return Response({
+            "payment_url": payment_response.get("checkoutUrl"),
+            "reference": instance.id,
+            "amount": instance.payment.amount,
+        })
+    

@@ -5,21 +5,22 @@ from core.models.event import Event
 from core.models.candidate import Candidate
 from core.models.common import TimeStampedModel
 
+PAYMENT_METHOD_CHOICES = [('momo', 'Mobile Money'), ('card', 'Card'), ('bank', 'Bank')]
+PROVIDER_CHOICES = [('mtn', 'MTN'), ('airtel', 'Airtel'), ('telecel', 'Telecel')]
+PAYMENT_STATUS_CHOICES = [('pending', 'Pending'), ('success', 'Success'), ('failed', 'Failed')]
+TRANSACTION_TYPE_CHOICES = [
+    ('payment', 'Payment'),         # Customer pays for a product/service
+    ('refund', 'Refund'),           # Refund to customer
+    ('withdrawal', 'Withdrawal'),   # Payout from platform to user
+    ('deposit', 'Deposit'),         # Money added to user account
+    ('transfer', 'Transfer'),       # Between accounts
+]
+
 class Transaction(TimeStampedModel):
-    PAYMENT_METHOD_CHOICES = [('momo', 'Mobile Money'), ('card', 'Card'), ('bank', 'Bank')]
-    PROVIDER_CHOICES = [('mtn', 'MTN'), ('airtel', 'Airtel'), ('telecel', 'Telecel')]
-    PAYMENT_STATUS_CHOICES = [('pending', 'Pending'), ('success', 'Success'), ('failed', 'Failed')]
-    TRANSACTION_TYPE_CHOICES = [
-        ('payment', 'Payment'),         # Customer pays for a product/service
-        ('refund', 'Refund'),           # Refund to customer
-        ('withdrawal', 'Withdrawal'),   # Payout from platform to user
-        ('deposit', 'Deposit'),         # Money added to user account
-        ('transfer', 'Transfer'),       # Between accounts
-    ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHOD_CHOICES)
+    channel = models.CharField(max_length=10, choices=PAYMENT_METHOD_CHOICES)
     provider = models.CharField(max_length=50, choices=PROVIDER_CHOICES)
     phone_number = models.CharField(max_length=15)
     external_payment_id = models.CharField(max_length=100, unique=True, null=True)

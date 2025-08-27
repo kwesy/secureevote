@@ -1,3 +1,5 @@
+from core.models.ticket import TicketSale
+from payments.models.transaction import PAYMENT_METHOD_CHOICES, PROVIDER_CHOICES
 from payments.models.withdrawal_transaction import WithdrawalTransaction
 from rest_framework import serializers
 from .models.vote_transaction import VoteTransaction
@@ -33,3 +35,15 @@ class WebhookLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebhookLog
         fields = ['id', 'event_id', 'candidate_id', 'payload', 'is_valid', 'received_at']
+
+class TicketTransactionSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(max_length=15, write_only=True, required=True)
+    channel = serializers.ChoiceField(choices=PAYMENT_METHOD_CHOICES, write_only=True, required=True)
+    provider = serializers.ChoiceField(choices=PROVIDER_CHOICES, write_only=True, required=True)
+
+    class Meta:
+        model = TicketSale
+        fields = ['id', 'ticket', 'customer_name', 'recipient_contact', 'recipient_email', 
+                  'phone_number', 'channel', 'provider',] # payment details
+        read_only_fields = ['id', 'created_at', 'payment']
+        

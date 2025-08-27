@@ -139,20 +139,15 @@ class TicketSerializer( RestrictUpdateFieldsMixin, serializers.ModelSerializer):
         fields = ['id', 'event', 'price', 'type', 'quantity', 'sold', 'desc', 'is_active', 'created_at']
         read_only_fields = ['id', 'sold', 'created_at']
         updatable_fields = ['price', 'type', 'quantity', 'desc', 'is_active']
+
+class PublicTicketSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ticket
+        exclude = ['sold', 'updated_at']
+        read_only_fields = ['id', 'event', 'price', 'type', 'quantity', 'desc', 'is_active', 'created_at']
         
 class TicketSaleSerializer(serializers.ModelSerializer):
-    phone_number = serializers.CharField(max_length=15, write_only=True)
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    payment_method = serializers.ChoiceField(choices=PAYMENT_METHOD_CHOICES, write_only=True)
-    provider = serializers.ChoiceField(choices=PROVIDER_CHOICES, write_only=True)
-
-    def validate_amount(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("Amount must be greater than zero.")
-        return value
-
     class Meta:
         model = TicketSale
-        fields = ['id', 'ticket', 'customer_name', 'recipient_contact', 
-                  'phone_number', 'amount', 'payment_method', 'provider',] # payment details
-        read_only_fields = ['id', 'created_at', 'payment']
+        fields = ['id', 'ticket', 'customer_name', 'recipient_contact', 'payment'] # payment details
+        read_only_fields = fields

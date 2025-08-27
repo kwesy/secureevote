@@ -23,6 +23,7 @@ class TicketSale(models.Model):
     payment = models.ForeignKey(Transaction, on_delete=models.CASCADE)
     customer_name = models.CharField(max_length=255)
     recipient_contact = models.CharField(max_length=15)
+    recipient_email = models.EmailField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return f"Ticket Sale: {self.payment_reference} - {self.amount} amount"

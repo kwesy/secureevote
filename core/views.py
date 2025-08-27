@@ -1,12 +1,12 @@
-from core.models.ticket import Ticket
-from rest_framework import status, permissions
+from core.models.ticket import Ticket, TicketSale
+from rest_framework import status, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
-from .serializers import PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, TicketSerializer, UserSerializer
+from .serializers import PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, PublicTicketSerializer, TicketSaleSerializer, TicketSerializer, UserSerializer
 from .mixins.response import StandardResponseView
 
 
@@ -183,6 +183,19 @@ class EventResultsView(StandardResponseView):
             "shortcode": event.shortcode,
             "results": data
         })
+    
+class PublicTicketView(StandardResponseView, generics.ListAPIView, generics.RetrieveAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PublicTicketSerializer
+    success_message = "Ticket details fetched successfully"
+
+    def get_queryset(self):
+        event = self.kwargs.get('event_id') 
+
+        if not event:
+            return Ticket.objects.none()
+        queryset = Ticket.objects.filter(event=event, is_active=True)
+        return queryset
 
 
 # Organizer role APIs
@@ -296,6 +309,39 @@ class TicketViewSet(StandardResponseView, viewsets.ModelViewSet):
             raise PermissionDenied("You are not allowed create tickets this event.")
         
         serializer.save()
+
+class TicketSalesListView(StandardResponseView, generics.ListAPIView):
+    permission_classes = [IsOrganizer]
+    serializer_class = TicketSaleSerializer
+    success_message = "Ticket sales fetched successfully"
+    filter_backends = [filters.SearchFilter]
+    search_fields = [
+        'customer_name',
+        'recipient_contact',
+        'payment__phone_number',
+        'ticket__type',
+    ]
+
+    def get_queryset(self):
+        queryset = TicketSale.objects.filter(ticket__event__user=self.request.user)
+
+        # Optional filters
+        ticket_code = self.request.query_params.get('ticket')
+        customer_name = self.request.query_params.get('customer_name')
+        recipient_contact = self.request.query_params.get('recipient_contact')
+        phone_number = self.request.query_params.get('phone_number')
+
+        if ticket_code:
+            queryset = queryset.filter(id__icontains=ticket_code)
+        if customer_name:
+            queryset = queryset.filter(customer_name__icontains=customer_name)
+        if recipient_contact:
+            queryset = queryset.filter(recipient_contact__icontains=recipient_contact)
+        if phone_number:
+            queryset = queryset.filter(phone_number__icontains=phone_number)
+
+        return queryset
+
         
 class DashboardView(StandardResponseView):
     permission_classes = [IsOrganizer]

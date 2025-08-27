@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CategoryViewSet, DashboardView, PublicCategoryListView, RegisterView, LoginView, MeView, RequestPasswordReset, ConfirmPasswordReset, TicketViewSet, UpdateUserView
+from .views import CategoryViewSet, DashboardView, PublicCategoryListView, PublicTicketView, RegisterView, LoginView, MeView, RequestPasswordReset, ConfirmPasswordReset, TicketSalesListView, TicketViewSet, UpdateUserView
 from .views import (
     PublicEventListView,
     PublicCandidateListView,
@@ -28,6 +28,7 @@ urlpatterns = [
 
 urlpatterns += [
     path('dashboard', DashboardView.as_view(), name='dashboard'),
+    path('organizer/tickets/sales', TicketSalesListView.as_view(), name='ticket-sales'),
     
 ]
 
@@ -36,6 +37,7 @@ urlpatterns += [
     path('public/events/<str:shortcode>/categories/', PublicCategoryListView.as_view(), name='public-categories'),
     path('public/events/candidates/', PublicCandidateListView.as_view(), name='public-candidates'),
     path('public/events/<str:shortcode>/results/', EventResultsView.as_view(), name='public-results'),
+    path('events/<int:event_id>/tickets/', PublicTicketView.as_view(), name='public-event-tickets'),
 ]
 
 urlpatterns += router.urls
