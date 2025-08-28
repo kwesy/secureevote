@@ -3,7 +3,7 @@ from utils.response import standard_response
 
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
-    # print(f"Exception: {exc}, Context: {context}")
+    print(f"Exception: {exc}, Context: {context}")
 
     if response is not None:
         data = response.data

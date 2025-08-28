@@ -1,6 +1,6 @@
 from core.models.ticket import TicketSale
 from payments.models.transaction import PAYMENT_METHOD_CHOICES, PROVIDER_CHOICES
-from payments.models.withdrawal_transaction import WithdrawalTransaction
+from core.models.withdrawal import WithdrawalTransaction
 from rest_framework import serializers
 from core.models.vote import VoteTransaction
 from .models.webhook_log import WebhookLog
@@ -19,12 +19,17 @@ class VoteTransactionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'is_verified', 'payment']
 
 class WithdrawalTransactionSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(max_length=15, write_only=True, required=True)
+    channel = serializers.ChoiceField(choices=PAYMENT_METHOD_CHOICES, write_only=True, required=True)
+    provider = serializers.ChoiceField(choices=PROVIDER_CHOICES, write_only=True, required=True)
+    
     class Meta:
         model = WithdrawalTransaction
         fields = [
-            'id', 'amount', 'status', 'withdraw_method', 'provider', 'phone_number', 'payment_reference', 'created_at',
-        ]
-        read_only_fields = ['payment_reference', 'status', 'created_at']
+            'id', 'amount', 'transaction', 
+            'phone_number', 'channel', 'provider', # payment details
+            ]
+        read_only_fields = ['id', 'transaction']
 
 class WithdrawalTransactionOTPSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=40)

@@ -2,7 +2,7 @@ import uuid
 from decimal import Decimal
 from core.models.otp import OTP
 from payments.models.transaction import Transaction
-from payments.models.withdrawal_transaction import WithdrawalTransaction
+from core.models.withdrawal import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
@@ -12,46 +12,7 @@ from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
 
-# class InitiateVoteView(StandardResponseView):
-#     permission_classes = []
-#     serializer_class = VoteTransactionSerializer
-#     success_message = "transaction initiated successfully"
 
-#     def post(self, request):
-#         serializer = self.serializer_class(data=request.data)
-
-#         if not serializer.is_valid():
-#             return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-        
-#         phone_number = serializer.validated_data.get('phone_number')
-#         vote_count = serializer.validated_data.get('vote_count')
-#         candidate = serializer.validated_data.get('candidate')
-
-#         print(f"Received vote request: candidate_id={candidate}, vote_count={vote_count}, phone_number={phone_number}")
-
-#         if vote_count <= 0 or not phone_number:
-#             return Response({'detail': 'Invalid input'}, status=400)
-
-#         if not candidate:
-#             return Response({'detail': 'Candidate not found'}, status=404)
-        
-#         try:
-#             amount = candidate.event.amount_per_vote * Decimal(vote_count)
-
-#             instance = serializer.save(amount=amount)
-
-#             description = f"{vote_count} votes for {candidate.name} ({candidate.event.name})"
-#             payment_response = initiate_payment(id, amount, description, phone_number)
-
-#         except Exception as e:
-#             print(f"Error creating transaction: {e}")
-#             return Response({'detail': 'Failed to create transaction'}, status=500)
-
-#         return Response({
-#             "payment_url": payment_response.get("checkoutUrl"),
-#             "reference": instance.id,
-#             "amount": instance.amount,
-#         })
 class InitiateVoteView(StandardResponseView):
     permission_classes = []
     serializer_class = VoteTransactionSerializer
@@ -180,14 +141,27 @@ class WithdrawalTransactionView(StandardResponseView, generics.ListAPIView, gene
         if not serializer.is_valid():
             return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         
+        channel = serializer.validated_data.pop('channel')
+        provider = serializer.validated_data.pop('provider')
+        phone_number = serializer.validated_data.pop('phone_number')
         # Ensure the user has a valid wallet balance
+        #TODO: permissions eg. minimum balance, max withdrawal limit, is_withdrawal_allowed, etc.
         if request.user.balance >= serializer.validated_data['amount']:
             # Create the withdrawal transaction and otp
             otp = OTP.objects.create(is_verified=False)
-            serializer.save(otp=otp, user=request.user)
+            transaction = Transaction.objects.create(
+                amount=serializer.validated_data['amount'],
+                channel=channel,
+                provider=provider,
+                phone_number=phone_number,
+                status='pending',
+                currency='GHS',
+                type='withdrawal',
+                desc=f"Withdrawal of {serializer.validated_data['amount']} GHS via {channel}",
+            )
+            serializer.save(otp=otp, user=request.user, transaction=transaction)
         else:
             return Response({'detail': 'Insufficient balance for withdrawal'}, status=status.HTTP_400_BAD_REQUEST)
-        
 
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -212,14 +186,14 @@ class WithdrawalOTPConfirmationView(StandardResponseView, generics.CreateAPIView
 
             # Verify the OTP code
             if withdrawal and not withdrawal.is_verified and withdrawal.otp.verify(code):
-                request.user.balance -= withdrawal.amount
+                request.user.balance -= withdrawal.transaction.amount
                 withdrawal.is_verified = True
                 request.user.save()
                 withdrawal.save()
                 #TODO: send money to user
                 return Response({"detail": "OTP confirmed successfully"}, status=status.HTTP_200_OK)
             else:
-                return Response({"detail": "Invalid OTP code"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"detail": "Invalid OTP code or Expired"}, status=status.HTTP_400_BAD_REQUEST)
             
         except WithdrawalTransaction.DoesNotExist:
             return Response({"detail": "Withdrawal transaction not found"}, status=status.HTTP_404_NOT_FOUND)
