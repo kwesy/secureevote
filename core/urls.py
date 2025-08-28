@@ -32,6 +32,7 @@ urlpatterns += [
     
 ]
 
+# Public Endpoints
 urlpatterns += [
     path('public/events/', PublicEventListView.as_view(), name='public-events'),
     path('public/events/<str:shortcode>/categories/', PublicCategoryListView.as_view(), name='public-categories'),

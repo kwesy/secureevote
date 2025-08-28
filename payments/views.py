@@ -1,16 +1,17 @@
 import uuid
 from decimal import Decimal
-from core.models.otp import OTP
+from core.models.otp import OTP, generate_secure_otp
 from payments.models.transaction import Transaction
 from core.models.withdrawal import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from core.models.vote import VoteTransaction
-from .serializers import TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
+from .serializers import ResendOTPSerializer, TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
+from django.shortcuts import get_object_or_404
 
 
 class InitiateVoteView(StandardResponseView):
@@ -197,6 +198,25 @@ class WithdrawalOTPConfirmationView(StandardResponseView, generics.CreateAPIView
             
         except WithdrawalTransaction.DoesNotExist:
             return Response({"detail": "Withdrawal transaction not found"}, status=status.HTTP_404_NOT_FOUND)
+
+#OTP Resend View
+class ResendOTPView(StandardResponseView):
+    permission_classes = [IsOrganizer]
+    serializer_class = ResendOTPSerializer
+
+    def post(self, request):
+        self.success_message = "OTP resent successfully."
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({'detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        request_id = serializer.validated_data.get('id')
+        otp = get_object_or_404(OTP, request_id=request_id, is_verified=False, )
+        otp.code = generate_secure_otp(6)
+        otp.save()
+
+        #TODO: Integrate with SMS service to send the OTP code to the user's email or phone number
+        return Response(None, status=status.HTTP_201_CREATED)
 
 # Ticket Payment View
 class TicketPaymentView(StandardResponseView):

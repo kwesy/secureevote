@@ -22,7 +22,7 @@ class WithdrawalTransactionSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(max_length=15, write_only=True, required=True)
     channel = serializers.ChoiceField(choices=PAYMENT_METHOD_CHOICES, write_only=True, required=True)
     provider = serializers.ChoiceField(choices=PROVIDER_CHOICES, write_only=True, required=True)
-    
+
     class Meta:
         model = WithdrawalTransaction
         fields = [
@@ -34,10 +34,20 @@ class WithdrawalTransactionSerializer(serializers.ModelSerializer):
 class WithdrawalTransactionOTPSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=40)
     code = serializers.CharField(min_length=6 , max_length=6)
+
     class Meta:
         model = None
         fields = [
-            'id', 'code'    # transaction ID and OTP code for verification
+            'id', 'code',    # otp request ID, OTP code for verification
+        ]
+
+class ResendOTPSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+
+    class Meta:
+        model = None
+        fields = [
+            'id'    #OTP prefix for resending
         ]
 
 class WebhookLogSerializer(serializers.ModelSerializer):
