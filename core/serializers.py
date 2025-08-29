@@ -12,7 +12,7 @@ PROVIDER_CHOICES = [('mtn', 'MTN'), ('airtel', 'Airtel'), ('telecel', 'Telecel')
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'organization_name', 'is_verified', 'is_active', 'balance']
+        fields = ['id', 'email', 'organization_name', 'is_verified', 'first_name', 'last_name', 'is_active', 'is_staff', 'balance'] #'transfer_allowed', 'transfer_limit',
 
 class CandidateSerializer(serializers.ModelSerializer):
     revenue = serializers.SerializerMethodField()

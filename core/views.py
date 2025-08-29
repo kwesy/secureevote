@@ -28,7 +28,9 @@ class RegisterView(StandardResponseView):
         user = User.objects.create_user(
             email=data['email'],
             password=data['password'],
-            organization_name=data['organization_name']
+            organization_name=data['organization_name'],
+            first_name=data.get('first_name', ''),
+            last_name=data.get('last_name', '')
         )
         return Response(UserSerializer(user).data, status=201)
 

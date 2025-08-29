@@ -31,7 +31,10 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     organization_name = models.CharField(max_length=255)
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    transfer_allowed = models.BooleanField(default=True)
+    transfer_limit = models.DecimalField(max_digits=10, decimal_places=2, default=1000.00)
     is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
