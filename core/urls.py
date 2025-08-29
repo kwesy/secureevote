@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import CategoryViewSet, DashboardView, PublicCategoryListView, PublicTicketView, RegisterView, LoginView, MeView, RequestPasswordReset, ConfirmPasswordReset, TicketSalesListView, TicketViewSet, UpdateUserView
+from .views import CategoryViewSet, DashboardView, LogoutView, PublicCategoryListView, PublicTicketView, RegisterView, LoginView, MeView, RequestPasswordReset, ConfirmPasswordReset, TicketSalesListView, TicketViewSet, UpdateUserView
 from .views import (
     PublicEventListView,
     PublicCandidateListView,
@@ -20,6 +20,7 @@ router.register(r'organizer/tickets', TicketViewSet, basename='organizer-tickets
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='login'),
+    path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('auth/update/', UpdateUserView.as_view(), name='update-user'),
     path('auth/me/', MeView.as_view(), name='me'),
     path('auth/request-password-reset/', RequestPasswordReset.as_view(), name='request-password-reset'),

@@ -51,7 +51,20 @@ class LoginView( StandardResponseView):
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
+            'user': UserSerializer(user).data
         })
+
+class LogoutView(StandardResponseView):
+    permission_classes = [permissions.IsAuthenticated]
+    success_message = "User logged out successfully"
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            raise ValidationError({'detail': 'Invalid token'})  
     
 class UpdateUserView(StandardResponseView):
     permission_classes = [permissions.IsAuthenticated]
