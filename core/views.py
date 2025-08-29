@@ -3,6 +3,7 @@ from rest_framework import status, permissions, filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.exceptions import NotFound, ValidationError, AuthenticationFailed
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
@@ -20,10 +21,10 @@ class RegisterView(StandardResponseView):
 
         for field in required_fields:
             if field not in data:
-                return Response({field: 'This field is required.'}, status=400)
+                raise ValidationError({"detial": f'{field}: This field is required.'})
 
         if User.objects.filter(email=data['email']).exists():
-            return Response({'email': 'User with this email already exists.'}, status=400)
+            raise ValidationError({'detail': 'User with this email already exists.'})
 
         user = User.objects.create_user(
             email=data['email'],
@@ -44,7 +45,7 @@ class LoginView( StandardResponseView):
         user = authenticate(request, email=email, password=password)
 
         if not user:
-            return Response({'detail': 'Invalid credentials'}, status=401)
+            raise AuthenticationFailed({'detail': 'Invalid credentials'})
 
         refresh = RefreshToken.for_user(user)
         return Response({
@@ -94,7 +95,7 @@ class RequestPasswordReset(StandardResponseView):
                 "uid": user.pk,
                 "token": token
             })
-        return Response({'detail': 'User not found'}, status=404)
+        raise NotFound({'detail': 'User not found'})
 
 class ConfirmPasswordReset(StandardResponseView):
     permission_classes = [permissions.AllowAny]
@@ -108,13 +109,13 @@ class ConfirmPasswordReset(StandardResponseView):
         try:
             user = get_user_model().objects.get(pk=uid)
             if not default_token_generator.check_token(user, token):
-                return Response({'detail': 'Invalid token'}, status=400)
+                raise ValidationError({'detail': 'Invalid token'})
 
             user.set_password(new_password)
             user.save()
-            return Response({'detail': 'Password reset successful'})
+            return Response({'detail': 'Password reset successful'}, status=200)
         except Exception:
-            return Response({'detail': 'Invalid request'}, status=400)
+            raise ValidationError({'detail': 'Invalid request'}, status=400)
 
 
 # Public APIs
@@ -170,7 +171,7 @@ class EventResultsView(StandardResponseView):
     def get(self, request, shortcode):
         event = Event.objects.filter(shortcode=shortcode, is_active=True).first()
         if not event:
-            return Response({'detail': 'Event not found'}, status=404)
+            raise NotFound({'detail': 'Event not found'})
 
         candidates = Candidate.objects.filter(event=event)
         data = [

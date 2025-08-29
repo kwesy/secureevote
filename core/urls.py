@@ -29,7 +29,6 @@ urlpatterns = [
 urlpatterns += [
     path('dashboard', DashboardView.as_view(), name='dashboard'),
     path('organizer/tickets/sales', TicketSalesListView.as_view(), name='ticket-sales'),
-    
 ]
 
 # Public Endpoints
