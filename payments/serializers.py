@@ -31,25 +31,6 @@ class WithdrawalTransactionSerializer(serializers.ModelSerializer):
             ]
         read_only_fields = ['id', 'transaction']
 
-class WithdrawalTransactionOTPSerializer(serializers.Serializer):
-    id = serializers.CharField(max_length=40)
-    code = serializers.CharField(min_length=6 , max_length=6)
-
-    class Meta:
-        model = None
-        fields = [
-            'id', 'code',    # otp request ID, OTP code for verification
-        ]
-
-class ResendOTPSerializer(serializers.Serializer):
-    id = serializers.UUIDField()
-
-    class Meta:
-        model = None
-        fields = [
-            'id'    #OTP prefix for resending
-        ]
-
 class WebhookLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebhookLog

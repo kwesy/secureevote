@@ -1,6 +1,4 @@
 from django.urls import path
-
-from payments.serializers import WithdrawalTransactionOTPSerializer
 from .views import InitiateVoteView, HubtelWebhookView, ResendOTPView, TicketPaymentView, VoteTransactionHistoryView, WithdrawalOTPConfirmationView, WithdrawalTransactionView
 
 app_name = "payments"

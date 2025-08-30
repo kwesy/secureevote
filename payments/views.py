@@ -1,13 +1,14 @@
 import uuid
 from decimal import Decimal
 from core.models.otp import OTP, generate_secure_otp
+from core.serializers import OTPSerializer, ResendOTPSerializer
 from payments.models.transaction import Transaction
 from core.models.withdrawal import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from core.models.vote import VoteTransaction
-from .serializers import ResendOTPSerializer, TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionOTPSerializer, WithdrawalTransactionSerializer
+from .serializers import TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
@@ -169,7 +170,7 @@ class WithdrawalTransactionView(StandardResponseView, generics.ListAPIView, gene
 
 # Withdrawal OTP confirmation view
 class WithdrawalOTPConfirmationView(StandardResponseView, generics.CreateAPIView):
-    serializer_class = WithdrawalTransactionOTPSerializer
+    serializer_class = OTPSerializer
     permission_classes = [IsOrganizer]
 
     def post(self, request):

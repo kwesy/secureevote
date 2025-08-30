@@ -1,13 +1,15 @@
+from core.models.otp import OTP, generate_secure_otp
 from core.models.ticket import Ticket, TicketSale
-from rest_framework import status, permissions, filters
+from rest_framework import status, permissions, filters, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import NotFound, ValidationError, AuthenticationFailed
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
 from .models.user import User
-from .serializers import PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, PublicTicketSerializer, TicketSaleSerializer, TicketSerializer, UserSerializer
+from .serializers import OTPSerializer, PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, PublicTicketSerializer, ResendOTPSerializer, TicketSaleSerializer, TicketSerializer, UserSerializer
 from .mixins.response import StandardResponseView
 
 
@@ -26,14 +28,66 @@ class RegisterView(StandardResponseView):
         if User.objects.filter(email=data['email']).exists():
             raise ValidationError({'detail': 'User with this email already exists.'})
 
+        otp = OTP.objects.create(is_verified=False)
         user = User.objects.create_user(
             email=data['email'],
             password=data['password'],
             organization_name=data['organization_name'],
             first_name=data.get('first_name', ''),
-            last_name=data.get('last_name', '')
+            last_name=data.get('last_name', ''),
+            otp = otp
         )
-        return Response(UserSerializer(user).data, status=201)
+        
+        return Response({'email': user.email, 'request_id': otp.request_id}, status=201)
+    
+# Email OTP confirmation view
+class EmailOTPVerificationView(StandardResponseView, generics.CreateAPIView):
+    serializer_class = OTPSerializer
+    permission_classes = []
+
+    def post(self, request):
+        self.success_message = "OTP confirmed successfully"
+        serializer = self.serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
+
+        email = serializer.validated_data.get('id')
+        code = serializer.validated_data.get('code')
+        request_id = serializer.validated_data.get('request_id') # only used for resending OTP
+
+        try:
+            user = get_user_model().objects.get(email=email)
+
+            # Verify the OTP code
+            if user and not user.is_verified and user.otp.verify(code):
+                user.is_verified = True
+                user.save()
+                return Response({"detail": "OTP confirmed successfully"}, status=status.HTTP_200_OK)
+            else:
+                raise ValidationError({"detail": "Invalid OTP code or Expired"})
+            
+        except get_user_model().DoesNotExist:
+            return NotFound({"detail": "User not found"})
+        
+#Unauthenticated OTP Resend View
+class ResendOTPView(StandardResponseView):
+    permission_classes = []
+    serializer_class = ResendOTPSerializer
+
+    def post(self, request):
+        self.success_message = "OTP resent successfully."
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            raise ValidationError({'detail': serializer.errors})
+        
+        request_id = serializer.validated_data.get('id')
+        otp = get_object_or_404(OTP, request_id=request_id, is_verified=False, )
+        otp.code = generate_secure_otp(6)
+        otp.save()
+
+        #TODO: Integrate with SMS service to send the OTP code to the user's email or phone number
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 class LoginView( StandardResponseView):
     permission_classes = [permissions.AllowAny]
@@ -46,6 +100,9 @@ class LoginView( StandardResponseView):
 
         if not user:
             raise AuthenticationFailed({'detail': 'Invalid credentials'})
+        
+        if not user.is_verified:
+            raise PermissionDenied("Please verify your account to continue.")
 
         refresh = RefreshToken.for_user(user)
         return Response({
@@ -68,7 +125,7 @@ class LogoutView(StandardResponseView):
     
 class UpdateUserView(StandardResponseView):
     permission_classes = [permissions.IsAuthenticated]
-    success_message = {"PATCH":"User updated successfully"}
+    success_message = "User updated successfully"
 
     def patch(self, request):
         user = request.user
@@ -128,7 +185,7 @@ class ConfirmPasswordReset(StandardResponseView):
             user.save()
             return Response({'detail': 'Password reset successful'}, status=200)
         except Exception:
-            raise ValidationError({'detail': 'Invalid request'}, status=400)
+            raise ValidationError({'detail': 'Invalid request'})
 
 
 # Public APIs

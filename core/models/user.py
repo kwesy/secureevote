@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 
+from core.models.otp import OTP
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -36,6 +38,7 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True)
     is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
+    otp = models.ForeignKey(OTP, on_delete=models.SET_NULL, null=True, blank=True, related_name='users')
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['organization_name']

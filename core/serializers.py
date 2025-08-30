@@ -151,3 +151,22 @@ class TicketSaleSerializer(serializers.ModelSerializer):
         model = TicketSale
         fields = ['id', 'ticket', 'customer_name', 'recipient_contact', 'payment'] # payment details
         read_only_fields = fields
+
+class OTPSerializer(serializers.Serializer):
+    id = serializers.CharField(max_length=40)
+    code = serializers.CharField(min_length=6 , max_length=6)
+
+    class Meta:
+        model = None
+        fields = [
+            'id', 'code', 'request_id'    #ID of what need to be verified, OTP code for verification, otp request_id(for resending OTP)
+        ]
+
+class ResendOTPSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+
+    class Meta:
+        model = None
+        fields = [
+            'request_id'    ##ID of what need to be verified, otp request_id(for resending OTP)
+        ]
