@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -157,7 +158,12 @@ REST_FRAMEWORK = {
     'EXCEPTION_HANDLER': 'utils.exceptions.custom_exception_handler',
 }
 
-CORS_ALLOW_ALL_ORIGINS = True  # Lock down in production
+CORS_ALLOW_ALL_ORIGINS = False  # Lock down in production
+
+CORS_ALLOWED_ORIGINS = [
+    'https://6c442ca8-69fe-43d2-b5cc-d9f62a18bf2c-figmaiframepreview.figma.site',
+]
+
 
 from datetime import timedelta
 
