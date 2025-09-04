@@ -7,7 +7,9 @@ from core.models.withdrawal import WithdrawalTransaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
+from rest_framework.exceptions import APIException, ValidationError
 from core.models.vote import VoteTransaction
+from services.services import charge_mobile_money
 from .serializers import TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
@@ -60,11 +62,16 @@ class InitiateVoteView(StandardResponseView):
             instance = serializer.save(payment=payment)
 
             description = payment.desc
-            payment_response = initiate_payment(payment.id, amount, description, phone_number)
+            payment_response = charge_mobile_money(payment.id, amount, description, phone_number)
 
         except Exception as e:
+            # If it's a DRF exception, raise it again without altering
+            if isinstance(e, (APIException, ValidationError)):
+                raise e
+            
             print(f"Error creating transaction: {e}")
-            return Response({'detail': 'Failed to create transaction'}, status=500)
+            # return Response({'detail': 'Failed to create transaction'}, status=500)
+
 
         return Response({
             "payment_url": payment_response.get("checkoutUrl"),

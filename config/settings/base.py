@@ -193,10 +193,21 @@ LOGGING = {
             'filename': BASE_DIR / '../logs/requests.log',
             'formatter': 'verbose',
         },
+        'paystack_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / '../logs/paystack.log',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'request_logger': {
             'handlers': ['request_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'paystack': {
+            'handlers': ['paystack_file'],
             'level': 'INFO',
             'propagate': False,
         },
