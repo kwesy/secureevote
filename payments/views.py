@@ -84,6 +84,12 @@ class InitiateVoteView(StandardResponseView):
             "channel": payment_response["data"]["channel"],
             "phone_number": payment_response["data"]["authorization"]["mobile_money_number"],
             "provider": payment_response["data"]["authorization"]["bank"],
+            "candidate": {
+                "id": instance.candidate.id,
+                "name": instance.candidate.name,
+                },
+            "vote": instance.vote_count,
+            "completed_at": payment_response["data"]["paid_at"]
         })
 
 # Hubtel Webhook View
