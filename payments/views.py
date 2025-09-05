@@ -44,7 +44,7 @@ class InitiateVoteView(StandardResponseView):
             return Response({'detail': 'Candidate not found'}, status=404)
 
         try:
-            amount = abs(candidate.event.amount_per_vote * Decimal(vote_count))
+            amount = abs(candidate.event.amount_per_vote * int(vote_count))
 
             # Create transaction object
             payment = Transaction.objects.create(
@@ -61,8 +61,12 @@ class InitiateVoteView(StandardResponseView):
             # Save vote record with payment linked
             instance = serializer.save(payment=payment)
 
-            description = payment.desc
-            payment_response = charge_mobile_money(payment.id, amount, description, phone_number)
+            if channel == 'momo':
+                payment_response = charge_mobile_money(amount, phone_number, provider)
+                payment.external_payment_id = payment_response.get('data')['id']
+                payment.save()
+            else:
+                raise ValidationError("Unsupported payment channel this resource.")
 
         except Exception as e:
             # If it's a DRF exception, raise it again without altering
@@ -74,9 +78,12 @@ class InitiateVoteView(StandardResponseView):
 
 
         return Response({
-            "payment_url": payment_response.get("checkoutUrl"),
-            "reference": instance.id,
-            "amount": instance.payment.amount,
+            "status": payment_response["data"]["status"],
+            "amount": payment_response["data"]["amount"]/100,  # Convert from pesewa to GHS
+            "reference": payment_response["data"]["reference"],
+            "channel": payment_response["data"]["channel"],
+            "phone_number": payment_response["data"]["authorization"]["mobile_money_number"],
+            "provider": payment_response["data"]["authorization"]["bank"],
         })
 
 # Hubtel Webhook View

@@ -68,7 +68,7 @@ def check_sms_balance():
         print(f"Error sending SMS: {e}")
         return False
     
-def charge_mobile_money(id:UUID, amount:float, phone_number:str, provider:str, email:str=None):
+def charge_mobile_money(amount:int, phone_number:str, provider:str, email:str=None):
     """
     Debit the account by the specified amount via mobile money.
     
@@ -87,14 +87,14 @@ def charge_mobile_money(id:UUID, amount:float, phone_number:str, provider:str, e
     }
 
     payload = {
-        "email": email or phone_number,
-        "amount": float(amount),
+        "email": email or "customer@osx.com",
+        "amount": int(amount*100),  # Paystack expects amount in the smallest currency unit (pesewa)
         "currency": "GHS",
         "mobile_money": {
             "phone": phone_number,
             "provider": provider
         },
-        "reference": str(id)
+        # "reference": id # uncomment to provide your own reference
     }
 
     try:
@@ -124,11 +124,12 @@ def charge_mobile_money(id:UUID, amount:float, phone_number:str, provider:str, e
         logger.error("Paystack returned an error: %s", data)
         raise ValidationError(data.get("message", "Unknown error"))
 
-    return ({
-        "status": data["data"]["status"],
-        "reference": data["data"]["reference"],
-        "display_text": data["data"].get("display_text", "")
-    })
+    # return ({
+    #     "status": data["data"]["status"],
+    #     "reference": data["data"]["reference"],
+    #     "amount": data["data"]["amount"],
+    # })
+    return data
     
 # if __name__ == "__main__":
     # test the functions
