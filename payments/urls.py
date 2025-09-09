@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import InitiateVoteView, HubtelWebhookView, ResendOTPView, TicketPaymentView, VoteTransactionHistoryView, WithdrawalOTPConfirmationView, WithdrawalTransactionView
+from .views import InitiateVoteView, HubtelWebhookView, PaystackWebhookView, ResendOTPView, TicketPaymentView, VoteTransactionHistoryView, WithdrawalOTPConfirmationView, WithdrawalTransactionView
 
 app_name = "payments"
 
@@ -14,7 +14,8 @@ urlpatterns = [
     path('tickets', TicketPaymentView.as_view(), name='purchase-ticket'),
 ]
 
-# Hubtel Webhook URL
+#Webhook URL
 urlpatterns += [
-    path('webhook', HubtelWebhookView.as_view(), name='hubtel-webhook'),
+    path('webhooks/hubtel', HubtelWebhookView.as_view(), name='hubtel-webhook'),
+    path('webhooks/paystack', PaystackWebhookView.as_view(), name="paystack-webhook"),
 ]

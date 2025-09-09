@@ -28,6 +28,7 @@ class Transaction(TimeStampedModel):
     status = models.CharField(max_length=20, default='pending', choices=PAYMENT_STATUS_CHOICES)
     type = models.CharField(max_length=20, choices=TRANSACTION_TYPE_CHOICES)
     desc = models.TextField(blank=True, null=True)
+    gateway = models.CharField(max_length=100, blank=True, null=True)
     # fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     # customer_name = models.CharField(max_length=100, blank=True,
     # metadata = models.JSONField(blank=True, null=True)

@@ -68,7 +68,7 @@ def check_sms_balance():
         print(f"Error sending SMS: {e}")
         return False
     
-def charge_mobile_money(amount:int, phone_number:str, provider:str, email:str=None):
+def charge_mobile_money(amount:int, phone_number:str, provider:str, email:str=None, metadata:dict=None):
     """
     Debit the account by the specified amount via mobile money.
     
@@ -94,6 +94,7 @@ def charge_mobile_money(amount:int, phone_number:str, provider:str, email:str=No
             "phone": phone_number,
             "provider": provider
         },
+        "metadata": metadata
         # "reference": id # uncomment to provide your own reference
     }
 

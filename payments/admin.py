@@ -11,6 +11,6 @@ class VoteTransactionAdmin(admin.ModelAdmin):
 
 @admin.register(WebhookLog)
 class WebhookLogAdmin(admin.ModelAdmin):
-    list_display = ('id', 'event_id', 'candidate_id', 'is_valid', 'received_at')
+    list_display = ('id', 'product', 'instance_id', 'is_valid', 'created_at', 'updated_at')
     list_filter = ('is_valid',)
     readonly_fields = ('payload',)

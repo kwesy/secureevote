@@ -1,11 +1,12 @@
 from django.db import models
+from core.models.common import TimeStampedModel
 
-class WebhookLog(models.Model):
-    event_id = models.CharField(max_length=100)
-    candidate_id = models.CharField(max_length=100)
+class WebhookLog(TimeStampedModel):
+    event = models.CharField(max_length=100)
+    product = models.IntegerField() # Vote -> 0, Ticket -> 1
+    instance_id = models.CharField(max_length=100)
     payload = models.JSONField()
     is_valid = models.BooleanField(default=False)
-    received_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"WebhookLog {self.id} ({'valid' if self.is_valid else 'invalid'})"

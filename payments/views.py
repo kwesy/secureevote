@@ -1,5 +1,6 @@
 import uuid
 from decimal import Decimal
+from core.models.candidate import Candidate
 from core.models.otp import OTP, generate_secure_otp
 from core.serializers import OTPSerializer, ResendOTPSerializer
 from payments.models.transaction import Transaction
@@ -15,7 +16,14 @@ from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
 from core.permissions import IsOrganizer
 from django.shortcuts import get_object_or_404
+import hmac, hashlib, json, logging
+from decouple import config
+from django.db import models
 
+
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
+
+logger = logging.getLogger("paystack")
 
 class InitiateVoteView(StandardResponseView):
     permission_classes = []
@@ -56,13 +64,14 @@ class InitiateVoteView(StandardResponseView):
                 currency='GHS',
                 type='payment',
                 desc=f"{vote_count} votes for {candidate.name} ({candidate.event.name})",
+                gateway='paystack',
             )
 
             # Save vote record with payment linked
             instance = serializer.save(payment=payment)
 
             if channel == 'momo':
-                payment_response = charge_mobile_money(amount, phone_number, provider)
+                payment_response = charge_mobile_money(amount, phone_number, provider, metadata={"p":0, "id": instance.id})    # p = 0 for vote payment, id = vote transaction id
                 payment.external_payment_id = payment_response.get('data')['id']
                 payment.save()
             else:
@@ -131,6 +140,98 @@ class HubtelWebhookView(APIView):
 
         return Response({"detail": "Payment confirmed"}, status=200)
 
+class PaystackWebhookView(APIView):
+    authentication_classes = []  # public
+    permission_classes = []      # public
+
+    def post(self, request, *args, **kwargs):
+        raw_body = request.body.decode("utf-8")
+        signature = request.META.get("x-paystack-signature")
+
+        payload = json.loads(raw_body)
+        event = payload.get("event", "")
+        amount = payload.get("data", {}).get("amount", 0)
+        payment_status = payload.get("data", {}).get("status", None)
+        reference = payload.get("data", {}).get("reference", None)
+        metadata = payload.get("data", {}).get("metadata", {})
+        product = -1
+        instance_id = ""
+
+        if isinstance(metadata, dict):
+            product = metadata.get("p", -1)
+            instance_id = metadata.get("id", "")
+        else:
+            # fallback: stringify entire metadata if it's not a dict
+            metadata = str(metadata)
+            instance_id = metadata
+        
+        # Verify signature
+        expected_signature = hmac.new(
+            PAYSTACK_SECRET_KEY.encode("utf-8"),
+            raw_body.encode("utf-8"),
+            hashlib.sha512
+        ).hexdigest()
+
+        if signature != expected_signature:
+            WebhookLog.objects.create(
+                event=event,
+                product=product,  # 0 for vote, 1 for ticket, -1 unknown
+                instance_id=instance_id, # vote or ticket transaction id
+                payload=raw_body,
+                is_valid=False
+            )
+            raise ValidationError({"detail": "Invalid signature"})
+
+        # Save raw log
+        WebhookLog.objects.create(
+            event=event, 
+            product=metadata.get("p", -1),  # 0 for vote, 1 for ticket, -1 unknown
+            instance_id=metadata.get("id", ""), # vote or ticket transaction id 
+            payload=raw_body,
+            is_valid=True
+        )
+
+        if payment_status != "success":
+            return Response({}, status=status.HTTP_200_OK)
+
+        try:
+            with transaction.atomic():
+                tx = Transaction.objects.select_for_update().get(external_payment_id=reference, gateway="paystack")
+
+                # Check for underpayment
+                if Decimal(amount) / 100 < tx.amount:
+                    logger.error("Amount underpaid for transaction %s: expected %s, got %s", tx.id, tx.amount, Decimal(amount)/100)
+
+                if tx.status == "pending":
+                    tx.status = payment_status
+                    tx.save()
+
+                    # Process based on product type
+                    if metadata.get("p") == 0:  # p = 0 for vote payment
+                        vote_tx = VoteTransaction.objects.select_for_update().get(id=metadata.get("id"), is_verified=False)
+                        vote_tx.is_verified = True
+                        vote_tx.save()
+                        # Update candidate vote_count atomically
+                        Candidate.objects.filter(id=vote_tx.candidate.id).update(
+                            vote_count=models.F("vote_count") + vote_tx.vote_count
+                        )
+                    elif metadata.get("p") == 1:  # p = 1 for ticket payment
+                        #TODO: For ticket payments, implement ticket delivery logic here
+                        pass
+                    else:
+                        logger.error("Unknown product type in metadata: %s", metadata.get("p"))
+
+        except Transaction.DoesNotExist:
+            logger.error("Transaction not found for reference: %s", reference)
+            return Response({"detail": "Transaction not found"}, status=status.HTTP_404_NOT_FOUND)
+        except VoteTransaction.DoesNotExist:
+            logger.error("VoteTransaction not found or already verified for id: %s", metadata.get("id"))
+            return Response({}, status=status.HTTP_202_OK) # Already processed, return 200 since payment was successful
+        except Exception as e:
+            logger.error("Error processing webhook for reference %s: %s", reference, str(e))
+            raise APIException("Error processing webhook for reference: %s", reference)
+
+        return Response({"detail": "Webhook processed"}, status=status.HTTP_200_OK)
 
 # Vote Transactions History View 
 class VoteTransactionHistoryView(StandardResponseView, generics.ListAPIView):
