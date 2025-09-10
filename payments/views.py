@@ -19,9 +19,11 @@ from django.shortcuts import get_object_or_404
 import hmac, hashlib, json, logging
 from decouple import config
 from django.db import models
+from ipware import get_client_ip
 
 
 PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
+PAYSTACK_IPS = config('ALLOWED_PAYSTACK_IPS', cast=lambda v: [ip.strip() for ip in v.split(',')])
 
 logger = logging.getLogger("paystack")
 
@@ -144,11 +146,16 @@ class PaystackWebhookView(APIView):
     authentication_classes = []  # public
     permission_classes = []      # public
 
+    def initial(self, request, *args, **kwargs):
+        ip, is_routable = get_client_ip(request)
+        if not ip or ip not in PAYSTACK_IPS:
+            logger.warning(f"Blocked IP: {ip}")
+            raise PermissionDenied("Forbidden")
+        super().initial(request, *args, **kwargs)
+
     def post(self, request, *args, **kwargs):
-        print("Received Paystack webhook")
         raw_body = request.body.decode("utf-8")
         signature = request.headers.get("X-Paystack-Signature")
-        print(f'Received Paystack signature: {signature}')
 
         payload = json.loads(raw_body)
         event = payload.get("event", "")
@@ -167,15 +174,12 @@ class PaystackWebhookView(APIView):
             metadata = str(metadata)
             instance_id = metadata
 
-        print(instance_id, product)
-        
         # Verify signature
         expected_signature = hmac.new(
             PAYSTACK_SECRET_KEY.encode("utf-8"),
             raw_body.encode("utf-8"),
             hashlib.sha512
         ).hexdigest()
-        print(f'Expected signature: {expected_signature}')
         if not hmac.compare_digest(signature, expected_signature):
             logger.warning("Invalid signature, event: {%s}, external_payment_id: {%s}", event, ext_payment_id)
             raise PermissionDenied("Invalid signature")
@@ -205,7 +209,6 @@ class PaystackWebhookView(APIView):
                     # Process based on product type
                     if product == 0 and payment_status == "success":  # p = 0 for vote payment
                         vote_tx = VoteTransaction.objects.select_for_update().get(id=instance_id, is_verified=False)
-                        print(f"Verifying vote transaction {vote_tx.id} for candidate {vote_tx.candidate.name}")
                         vote_tx.is_verified = True
                         vote_tx.save()
                         # Update candidate vote_count atomically
