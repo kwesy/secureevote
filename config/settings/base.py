@@ -163,6 +163,7 @@ CORS_ALLOW_ALL_ORIGINS = False  # Lock down in production
 
 CORS_ALLOWED_ORIGINS = [
     'https://6c442ca8-69fe-43d2-b5cc-d9f62a18bf2c-figmaiframepreview.figma.site',
+    'https://cristopher-diplomatic-anibal.ngrok-free.app',
 ]
 
 

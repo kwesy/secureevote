@@ -115,7 +115,7 @@ def charge_mobile_money(amount:int, phone_number:str, provider:str, email:str=No
         logger.error("Failed to connect to Paystack.")
         raise APIException("internal error")
     except Exception as e:
-        logger.error("Unexpected error: %s", str(e))
+        logger.error("Unexpected error: %s", str(e), exc_info=True)
         raise APIException("An unexpected error occured.")
 
     data = response.json()
