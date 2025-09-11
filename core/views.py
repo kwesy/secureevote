@@ -50,6 +50,17 @@ class RegisterView(StandardResponseView):
                 context={"organization_name": user.organization_name, "otp_code": otp.code},
                 recipient_list=[user.email],
             )
+            send_email(
+                subject="Welcome to SecureEVote 🎉",
+                template_name="emails/welcome.html",
+                context={
+                    "organizer_name": user.organization_name,
+                    "dashboard_url": "https://secureevote.com/dashboard",
+                    "year": 2025,
+                },
+                recipient_list=[user.email],
+            )
+            
         except Exception as e:
             user.delete()
             logger.error(f"Error sending OTP email: {e}", exc_info=True)
