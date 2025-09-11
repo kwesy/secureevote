@@ -6,3 +6,5 @@ ALLOWED_HOSTS = [
     'localhost',
     '.ngrok-free.app', 
 ]
+
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

@@ -8,10 +8,14 @@ from rest_framework.exceptions import NotFound, ValidationError, AuthenticationF
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from django.core.exceptions import PermissionDenied
+
+from services.services import send_email
 from .models.user import User
 from .serializers import OTPSerializer, PublicCandidateSerializer, PublicCategorySerializer, PublicEventSerializer, PublicTicketSerializer, ResendOTPSerializer, TicketSaleSerializer, TicketSerializer, UserSerializer
 from .mixins.response import StandardResponseView
+import logging
 
+logger = logging.getLogger("paystack")
 
 class RegisterView(StandardResponseView):
     permission_classes = [permissions.AllowAny]
@@ -37,6 +41,19 @@ class RegisterView(StandardResponseView):
             last_name=data.get('last_name', ''),
             otp = otp
         )
+
+        # Send OTP to email
+        try:
+            send_email(
+                subject="SecureEVote Signup Verification",
+                template_name="emails/email_verification.html",
+                context={"organization_name": user.organization_name, "otp_code": otp.code},
+                recipient_list=[user.email],
+            )
+        except Exception as e:
+            user.delete()
+            logger.error(f"Error sending OTP email: {e}", exc_info=True)
+            raise ValidationError({'detail': 'Failed to send OTP email. Please try again later.'})
         
         return Response({'email': user.email, 'request_id': otp.request_id}, status=201)
     

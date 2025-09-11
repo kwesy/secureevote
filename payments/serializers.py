@@ -10,6 +10,10 @@ class VoteTransactionSerializer(serializers.ModelSerializer):
     channel = serializers.ChoiceField(choices=PAYMENT_METHOD_CHOICES, write_only=True, required=True)
     provider = serializers.ChoiceField(choices=PROVIDER_CHOICES, write_only=True, required=True)
 
+    @property
+    def get_channel_display(self):
+        return dict(PAYMENT_METHOD_CHOICES).get(self.validated_data.get('payment_method'))
+
     class Meta:
         model = VoteTransaction
         fields = [
@@ -22,6 +26,10 @@ class WithdrawalTransactionSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(max_length=15, write_only=True, required=True)
     channel = serializers.ChoiceField(choices=PAYMENT_METHOD_CHOICES, write_only=True, required=True)
     provider = serializers.ChoiceField(choices=PROVIDER_CHOICES, write_only=True, required=True)
+
+    @property
+    def get_channel_display(self):
+        return dict(PAYMENT_METHOD_CHOICES).get(self.validated_data.get('channel'))
 
     class Meta:
         model = WithdrawalTransaction

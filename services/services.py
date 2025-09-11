@@ -6,6 +6,9 @@ from rest_framework.exceptions import (
 )
 import logging
 from uuid import UUID
+from django.core.mail import send_mail
+from django.template.loader import get_template
+from django.conf import settings
 
 logger = logging.getLogger("paystack")
 
@@ -125,16 +128,21 @@ def charge_mobile_money(amount:int, phone_number:str, provider:str, email:str=No
         logger.error("Paystack returned an error: %s", data)
         raise ValidationError(data.get("message", "Unknown error"))
 
-    # return ({
-    #     "status": data["data"]["status"],
-    #     "reference": data["data"]["reference"],
-    #     "amount": data["data"]["amount"],
-    # })
     return data
+
+def send_email(subject, template_name, context, recipient_list):
+    """
+    Generic function to send templated HTML emails.
+    """
     
-# if __name__ == "__main__":
-    # test the functions
-    # check_balance()
-    # status = send_sms(["+233558297444"], "Hello, this is a test message.")
-    # print("SMS sent successfully!" if status else "Failed to send SMS.")
-    # charge_mobile_money(0.1, "0548297444", "mtn")
+    # html_message = render_to_string(template_name, context)
+    html_message = get_template(template_name).render(context)
+    send_mail(
+        subject=subject,
+        message="",
+        html_message=html_message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=recipient_list,
+        fail_silently=False,
+    )
+

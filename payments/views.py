@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.exceptions import APIException, ValidationError, PermissionDenied
 from core.models.vote import VoteTransaction
-from services.services import charge_mobile_money
+from services.services import charge_mobile_money, send_email
 from .serializers import TicketTransactionSerializer, VoteTransactionSerializer, WithdrawalTransactionSerializer
 from .services.hubtel import initiate_payment
 from core.mixins.response import StandardResponseView
@@ -286,6 +286,25 @@ class WithdrawalTransactionView(StandardResponseView, generics.ListAPIView, gene
                 desc=f"Withdrawal of {serializer.validated_data['amount']} GHS via {channel}",
             )
             serializer.save(otp=otp, user=request.user, transaction=transaction)
+
+            try:
+                send_email(
+                    subject="Confirm Your Withdrawal - SecureEVote",
+                    template_name="emails/withdraw_request_confirmation.html",
+                    context={
+                        "organizer_name": request.user.organization_name,
+                        "amount": f"₵{serializer.validated_data['amount']}",
+                        "payout_method": f"{provider} {serializer.get_channel_display} ({phone_number})",
+                        "otp": otp.code,
+                        "expiry_minutes": 5,
+                        "year": 2025,
+                    },
+                    recipient_list=[request.user.email],
+                )
+            except Exception as e:
+                logger.error(f"Error sending email: {e}", exc_info=True)
+                raise e
+
         else:
             return Response({'detail': 'Insufficient balance for withdrawal'}, status=status.HTTP_400_BAD_REQUEST)
 
