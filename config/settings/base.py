@@ -201,6 +201,12 @@ LOGGING = {
             'filename': BASE_DIR / '../logs/paystack.log',
             'formatter': 'verbose',
         },
+        'error_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / '../logs/error.log',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'request_logger': {
@@ -210,6 +216,11 @@ LOGGING = {
         },
         'paystack': {
             'handlers': ['paystack_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'error': {
+            'handlers': ['error_file'],
             'level': 'INFO',
             'propagate': False,
         },

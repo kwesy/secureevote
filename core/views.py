@@ -15,7 +15,7 @@ from .serializers import OTPSerializer, PublicCandidateSerializer, PublicCategor
 from .mixins.response import StandardResponseView
 import logging
 
-logger = logging.getLogger("paystack")
+logger = logging.getLogger("error")
 
 class RegisterView(StandardResponseView):
     permission_classes = [permissions.AllowAny]
@@ -442,7 +442,6 @@ class TicketSalesListView(StandardResponseView, generics.ListAPIView):
             queryset = queryset.filter(phone_number__icontains=phone_number)
 
         return queryset
-
         
 class DashboardView(StandardResponseView):
     permission_classes = [IsOrganizer]
