@@ -26,6 +26,7 @@ PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
 PAYSTACK_IPS = config('ALLOWED_PAYSTACK_IPS', cast=lambda v: [ip.strip() for ip in v.split(',')])
 
 logger = logging.getLogger("paystack")
+error_logger = logging.getLogger("error")
 
 class InitiateVoteView(StandardResponseView):
     permission_classes = []
@@ -44,8 +45,6 @@ class InitiateVoteView(StandardResponseView):
 
         vote_count = serializer.validated_data.get('vote_count')
         candidate = serializer.validated_data.get('candidate')
-
-        print(f"Received vote request: candidate_id={candidate}, vote_count={vote_count}, phone_number={phone_number}")
 
         if vote_count <= 0 or not phone_number:
             return Response({'detail': 'Invalid input'}, status=400)
@@ -84,8 +83,8 @@ class InitiateVoteView(StandardResponseView):
             if isinstance(e, (APIException, ValidationError)):
                 raise e
             
-            print(f"Error creating transaction: {e}")
-            # return Response({'detail': 'Failed to create transaction'}, status=500)
+            error_logger.error('Error creating transaction: %s', str(e), exc_info=True)
+            return APIException({'detail': 'Transaction Failed!'}, status=500)
 
 
         return Response({
