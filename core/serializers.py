@@ -149,7 +149,7 @@ class PublicTicketSerializer(serializers.ModelSerializer):
 class TicketSaleSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketSale
-        fields = ['id', 'ticket', 'customer_name', 'recipient_contact', 'payment'] # payment details
+        fields = ['id', 'ticket', 'recipient_name', 'recipient_contact', 'recipient_email', 'payment'] # payment details
         read_only_fields = fields
 
 class OTPSerializer(serializers.Serializer):

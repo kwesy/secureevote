@@ -17,11 +17,11 @@ class Ticket(TimeStampedModel):
     def __str__(self):
         return f"Ticket: {self.id[:5]} - {self.type} votes"
 
-class TicketSale(models.Model):
+class TicketSale(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE)
     payment = models.ForeignKey(Transaction, on_delete=models.CASCADE)
-    customer_name = models.CharField(max_length=255)
+    recipient_name = models.CharField(max_length=255)
     recipient_contact = models.CharField(max_length=15)
     recipient_email = models.EmailField(max_length=255, blank=True, null=True)
 

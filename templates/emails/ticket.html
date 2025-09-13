@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your Ticket - SecureEVote</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f7fa; padding: 20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" 
+         style="max-width: 600px; margin: auto; background: #ffffff; 
+                border-radius: 10px; padding: 20px; 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.05);">
+    <tr>
+      <td style="text-align: center;">
+        <h2 style="color: #2a2a2a;">🎟 Ticket Purchase Successful</h2>
+        
+        {% if customer_name %}
+          <p style="font-size: 16px; color: #555;">Hello {{ customer_name }},</p>
+        {% else %}
+          <p style="font-size: 16px; color: #555;">Hello,</p>
+        {% endif %}
+
+        <p style="font-size: 15px; color: #555; line-height: 1.6;">
+          Thank you for your purchase! Your ticket for <strong>{{ event_name }}</strong> has been confirmed.
+        </p>
+
+        <table width="100%" cellpadding="8" cellspacing="0" 
+               style="margin: 20px 0; border: 1px solid #eee; border-radius: 6px;">
+          <tr style="background: #f9f9f9;">
+            <td><strong>Ticket</strong></td>
+            <td>{{ ticket_type }}</td>
+          </tr>
+          <tr style="background: #f9f9f9;">
+            <td><strong>Ticket ID</strong></td>
+            <td>{{ ticket_id }}</td>
+          </tr>
+          <tr>
+            <td><strong>Event</strong></td>
+            <td>{{ event_name }}</td>
+          </tr>
+          <tr style="background: #f9f9f9;">
+            <td><strong>Date</strong></td>
+            <td>{{ event_date }}</td>
+          </tr>
+          <tr>
+            <td><strong>Venue</strong></td>
+            <td>{{ event_venue }}</td>
+          </tr>
+          <tr style="background: #f9f9f9;">
+            <td><strong>Amount Paid</strong></td>
+            <td>{{ amount }}</td>
+          </tr>
+        </table>
+
+        <p style="font-size: 14px; color: #777; margin-top: 10px;">
+          Please present this ticket at the entrance. You can either show this email or scan the QR code below.
+        </p>
+
+        <div style="margin: 25px auto;">
+          <img src="{{ qr_code_url }}" alt="Ticket QR Code" 
+               style="max-width: 220px; border: 1px solid #ddd; padding: 10px; background: #fff;">
+        </div>
+
+        <p style="font-size: 13px; color: #aaa; margin-top: 20px;">
+          Ticket ID: {{ ticket_id }} • Non-transferable • Valid for one entry only
+        </p>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #bbb;">© {{ year }} SecureEVote. All rights reserved.</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

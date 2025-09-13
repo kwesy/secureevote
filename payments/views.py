@@ -2,6 +2,7 @@ import uuid
 from decimal import Decimal
 from core.models.candidate import Candidate
 from core.models.otp import OTP, generate_secure_otp
+from core.models.ticket import TicketSale
 from core.serializers import OTPSerializer, ResendOTPSerializer
 from payments.models.transaction import Transaction
 from core.models.withdrawal import WithdrawalTransaction
@@ -76,7 +77,7 @@ class InitiateVoteView(StandardResponseView):
                 payment.external_payment_id = payment_response.get('data')['id']
                 payment.save()
             else:
-                raise ValidationError("Unsupported payment channel this resource.")
+                raise ValidationError({"detail":"Unsupported payment channel this resource."})
 
         except Exception as e:
             # If it's a DRF exception, raise it again without altering
@@ -84,7 +85,7 @@ class InitiateVoteView(StandardResponseView):
                 raise e
             
             error_logger.error('Error creating transaction: %s', str(e), exc_info=True)
-            return APIException({'detail': 'Transaction Failed!'}, status=500)
+            raise APIException({'detail': 'Transaction Failed!'})
 
 
         return Response({
@@ -214,9 +215,27 @@ class PaystackWebhookView(APIView):
                         Candidate.objects.filter(id=vote_tx.candidate.id).update(
                             vote_count=models.F("vote_count") + vote_tx.vote_count
                         )
-                    elif product == 1:  # p = 1 for ticket payment
-                        #TODO: For ticket payments, implement ticket delivery logic here
-                        pass
+                    elif product == 1 and payment_status == "success":  # p = 1 for ticket payment
+                        # Send ticket email with QR code
+                        #No need to verify again since payment status is success
+                        ticket_tx = TicketSale.objects.select_for_update().get(id=instance_id)
+                        #TODO: send this to a queue for processing
+                        send_email(
+                            subject=f"Your Ticket for {ticket_tx.ticket.event.name}",
+                            template_name="emails/ticket.html",
+                            context={
+                                "customer_name": ticket_tx.recipient_name,
+                                "event_name": ticket_tx.ticket.event.name,
+                                "event_date": ticket_tx.ticket.event.start_time.strftime("%B %d, %Y at %I:%M %p"),
+                                "ticket_type": ticket_tx.ticket.type,
+                                "event_venue": ticket_tx.ticket.event.location,
+                                "ticket_id": ticket_tx.id,
+                                "amount": f"₵{ticket_tx.payment.amount}",
+                                "qr_code_url": "https://secureevote.com/media/qrcodes/TCK123456789.png",
+                                "year": 2025,
+                            },
+                            recipient_list=[ticket_tx.recipient_email],
+                        )
                     else:
                         logger.error("Unknown product type in metadata: %s", metadata.get("p"))
 
@@ -390,20 +409,40 @@ class TicketPaymentView(StandardResponseView):
                 currency='GHS',
                 type='payment',
                 desc=f"Payment for ticket {ticket.type} ({ticket.event.name})",
+                gateway='paystack',
             )
 
             instance = serializer.save(payment=payment)
 
-            description = f"Payment for ticket {ticket.type} ({ticket.event.name})"
-            payment_response = initiate_payment('refrence', amount, description, phone_number)
+            if channel == 'momo':
+                payment_response = charge_mobile_money(int(ticket.price), phone_number, provider, metadata={"p":1, "id": str(instance.id)})    # p = 1 for ticket payment, id = ticket sale id
+                payment.external_payment_id = payment_response.get('data')['id']
+                payment.save()
+            else:
+                raise ValidationError({"detail":"Unsupported payment channel this resource."})
 
         except Exception as e:
-            print(f"Error creating transaction: {e}")
-            return Response({'detail': 'Failed to create transaction'}, status=500)
+            # If it's a DRF exception, raise it again without altering
+            if isinstance(e, (APIException, ValidationError)):
+                raise e
+            
+            error_logger.error('Error creating transaction: %s', str(e), exc_info=True)
+            raise APIException({'detail': 'Transaction Failed!'})
+
 
         return Response({
-            "payment_url": payment_response.get("checkoutUrl"),
-            "reference": instance.id,
-            "amount": instance.payment.amount,
+            "status": payment_response["data"]["status"],
+            "amount": payment_response["data"]["amount"]/100,  # Convert from pesewa to GHS
+            "reference": payment_response["data"]["reference"],
+            "channel": payment_response["data"]["channel"],
+            "phone_number": payment_response["data"]["authorization"]["mobile_money_number"],
+            "provider": payment_response["data"]["authorization"]["bank"],
+            "ticket": {
+                "type": instance.ticket.type,
+                "owner_contact": instance.recipient_contact,
+                "owner_name": instance.recipient_name,
+                "event": instance.ticket.event.name,
+                },
+            "completed_at": payment_response["data"]["paid_at"]
         })
     

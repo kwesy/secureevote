@@ -51,6 +51,6 @@ class TicketTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TicketSale
-        fields = ['id', 'ticket', 'customer_name', 'recipient_contact', 'recipient_email', 
+        fields = ['id', 'ticket', 'recipient_name', 'recipient_contact', 'recipient_email', 
                   'phone_number', 'channel', 'provider',] # payment details
         read_only_fields = ['id', 'created_at', 'payment']
