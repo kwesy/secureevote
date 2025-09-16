@@ -8,3 +8,4 @@ venv
 .env
 mydatabase.sqlite3
 logs
+.coverage
