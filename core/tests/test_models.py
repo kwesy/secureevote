@@ -7,7 +7,6 @@ from django.db import IntegrityError
 # from django.contrib.auth.models import User
 from decimal import Decimal
 from datetime import timedelta
-import time
 
 
 @pytest.mark.django_db
@@ -130,3 +129,119 @@ class TestOTPModel:
     def test_verify_already_verified(self):
         otp = OTP.objects.create(code="123456", is_verified=True)
         assert otp.verify("123456") is False
+
+@pytest.fixture
+def user(db):
+    return User.objects.create_user(
+        email="eventowner@example.com",
+        password="password123",
+        organization_name="EventOrg"
+    )
+
+
+@pytest.fixture
+def event(user):
+    return Event.objects.create(
+        user=user,
+        name="Music Awards",
+        host="DJ Khaled",
+        description="Annual music awards show",
+        amount_per_vote=5.00,
+        start_time=timezone.now(),
+        end_time=timezone.now() + timedelta(days=2),
+        location="Accra"
+    )
+
+
+@pytest.fixture
+def category(event):
+    return Category.objects.create(
+        event=event,
+        name="Best Artist",
+        description="Award for the best artist of the year"
+    )
+
+
+@pytest.mark.django_db
+class TestEventModel:
+    def test_event_creation_defaults(self, event, user):
+        assert event.user == user
+        assert event.shortcode is not None
+        assert len(event.shortcode) <= 10
+        assert event.is_active is True
+        assert event.is_blocked is False
+        assert event.amount_per_vote == 5.00
+        assert event.location == "Accra"
+
+    def test_event_str_representation(self, event):
+        assert str(event) == f"{event.name} ({event.shortcode})"
+
+    def test_event_required_fields(self, user):
+        event = Event.objects.create(
+            user=user,
+            name="Comedy Night",
+            host="FunnyGuy",
+            amount_per_vote=10,
+            start_time=timezone.now(),
+            end_time=timezone.now() + timedelta(hours=5)
+        )
+        assert event.description == ""
+        assert event.location == ""
+
+
+@pytest.mark.django_db
+class TestCategoryModel:
+    def test_category_creation(self, category, event):
+        assert category.event == event
+        assert category.is_active is True
+        assert category.description == "Award for the best artist of the year"
+
+    def test_category_str_representation(self, category):
+        assert str(category) == f"{category.name} ({category.event.shortcode})"
+
+    def test_category_unique_together(self, event):
+        Category.objects.create(event=event, name="Best Album")
+        with pytest.raises(IntegrityError):
+            Category.objects.create(event=event, name="Best Album")
+
+
+@pytest.mark.django_db
+class TestCandidateModel:
+    def test_candidate_creation_defaults(self, event, category):
+        candidate = Candidate.objects.create(
+            event=event,
+            category=category,
+            name="John Doe",
+            gender="male",
+            description="Talented musician",
+            extra_info="From Ghana"
+        )
+        assert candidate.event == event
+        assert candidate.category == category
+        assert candidate.gender == "male"
+        assert candidate.vote_count == 0
+        assert candidate.is_blocked is False
+        assert candidate.achivements == []
+
+    def test_candidate_str_representation(self, event, category):
+        candidate = Candidate.objects.create(
+            event=event,
+            category=category,
+            name="Jane Doe",
+            gender="female"
+        )
+        assert str(candidate) == f"{candidate.name} ({candidate.event.shortcode})"
+
+    def test_candidate_unique_together(self, event, category):
+        Candidate.objects.create(event=event, category=category, name="Duplicate", gender="other")
+        with pytest.raises(IntegrityError):
+            Candidate.objects.create(event=event, category=category, name="Duplicate", gender="other")
+
+    def test_candidate_gender_choices(self, event, category):
+        candidate = Candidate.objects.create(
+            event=event,
+            category=category,
+            name="Alex Smith",
+            gender="other"
+        )
+        assert candidate.gender in dict(Candidate.GENDER_CHOICES)

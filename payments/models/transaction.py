@@ -34,4 +34,4 @@ class Transaction(TimeStampedModel):
     # metadata = models.JSONField(blank=True, null=True)
 
     def __str__(self):
-        return f"Tx: {self.id[:5]} - {self.amount} votes"
+        return f"Tx: {str(self.id)[:5]} - {self.amount} - {self.channel}"
